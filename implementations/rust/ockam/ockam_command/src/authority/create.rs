@@ -297,10 +297,8 @@ async fn start_authority_node(
     // because this would fail if there is no intention to create a secure channel
     debug!("updating node state's setup config");
     opts.state
-        .set_node_transport(
+        .set_tcp_listener_address(
             &cmd.node_name,
-            TransportType::Tcp,
-            TransportMode::Listen,
             cmd.tcp_listener_address.clone(),
         )
         .await?;

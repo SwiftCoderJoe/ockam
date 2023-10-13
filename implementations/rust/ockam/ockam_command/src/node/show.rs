@@ -181,7 +181,7 @@ pub async fn print_query_status(
 ) -> miette::Result<()> {
     let cli_state = opts.state.clone();
     let node_info = cli_state.get_node(node_name).await?;
-    let node_port = node_info.api_transport_port();
+    let node_port = node_info.tcp_listener_port();
 
     if !is_node_up(ctx, node_name, node, cli_state.clone(), wait_until_ready).await? {
         // it is expected to not be able to open an arbitrary TCP connection on an authority node

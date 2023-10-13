@@ -23,7 +23,7 @@ async fn run_impl(
 ) -> miette::Result<()> {
     let node_info = opts.state.get_node(&cmd.alias).await?;
     let addr = &node_info
-        .api_transport_address()
+        .tcp_listener_address()
         .map(|a| a.to_string())
         .unwrap_or("N/A".to_string());
     println!("Address: {addr}");

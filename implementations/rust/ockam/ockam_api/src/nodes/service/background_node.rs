@@ -132,7 +132,7 @@ impl BackgroundNode {
     async fn create_route(&self) -> miette::Result<Route> {
         let mut route = self.to.clone();
         let node_info = self.cli_state.get_node(&self.node_name).await?;
-        let port = node_info.api_transport_port().expect(
+        let port = node_info.tcp_listener_port().expect(
             format!(
                 "an api transport should have been started for node {}",
                 &self.node_name

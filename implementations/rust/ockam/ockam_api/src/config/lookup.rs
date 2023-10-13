@@ -5,6 +5,7 @@ use bytes::Bytes;
 use miette::WrapErr;
 use ockam::identity::{identities, Identifier};
 use ockam_core::compat::collections::VecDeque;
+use ockam_multiaddr::proto::{DnsAddr, Ip4, Ip6, Tcp};
 use ockam_multiaddr::MultiAddr;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -135,6 +136,19 @@ pub enum InternetAddress {
     V4(SocketAddrV4),
     /// An IPv6 socket address
     V6(SocketAddrV6),
+}
+
+impl InternetAddress {
+    pub fn multi_addr(&self) -> ockam_core::Result<MultiAddr> {
+        let mut m = MultiAddr::default();
+        match self {
+            InternetAddress::Dns(dns, _) => m.push_back(DnsAddr::new(dns))?,
+            InternetAddress::V4(v4) => m.push_back(Ip4(*v4.ip()))?,
+            InternetAddress::V6(v6) => m.push_back(Ip6(*v6.ip()))?,
+        }
+        m.push_back(Tcp(self.port()))?;
+        Ok(m)
+    }
 }
 
 impl Default for InternetAddress {

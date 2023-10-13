@@ -187,7 +187,7 @@ pub async fn process_nodes_multiaddr(
                     .cast::<Node>()
                     .ok_or_else(|| miette!("Invalid node address protocol"))?;
                 let node_info = cli_state.get_node(&alias.to_string()).await?;
-                let addr = node_info.api_transport_multiaddr()?;
+                let addr = node_info.tcp_listener_multi_address()?;
                 processed_addr.try_extend(&addr)?
             }
             _ => processed_addr.push_back_value(&proto)?,
@@ -212,7 +212,7 @@ pub async fn clean_nodes_multiaddr(
                 let alias = p.cast::<Node>().expect("Failed to parse node name");
                 let node_info = cli_state.get_node(&alias.to_string()).await?;
                 let addr = node_info
-                    .api_transport_address()
+                    .tcp_listener_address()
                     .ok_or(Error::new_internal_error(
                         "No transport API has been set on the node",
                         "",
@@ -335,10 +335,8 @@ mod tests {
         cli_state.create_identity_with_random_name().await?;
 
         let n_state = cli_state
-            .set_node_transport(
+            .set_tcp_listener_address(
                 "n1",
-                TransportType::Tcp,
-                TransportMode::Listen,
                 "127.0.0.0:4000".to_string(),
             )
             .await?;

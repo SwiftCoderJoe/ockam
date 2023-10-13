@@ -282,10 +282,8 @@ async fn run_foreground_node(
 
     opts.state.set_node_pid(&node_name, process::id()).await?;
     opts.state
-        .set_node_transport(
+        .set_tcp_listener_address(
             &node_name,
-            TransportType::Tcp,
-            TransportMode::Listen,
             listener.socket_address().to_string(),
         )
         .await?;

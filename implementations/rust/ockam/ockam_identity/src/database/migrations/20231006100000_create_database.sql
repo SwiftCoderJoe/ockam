@@ -45,24 +45,22 @@ CREATE TABLE node (
   verbosity INTEGER NOT NULL,
   is_default INTEGER NOT NULL,
   is_authority INTEGER NOT NULL,
-  transport TEXT,
-  vault_name TEXT NOT NULL,
+  tcp_listener_address TEXT,
   pid INTEGER
 );
 
 CREATE TABLE project (
-    id TEXT PRIMARY KEY,
-    node_route TEXT,
-    name: TEXT,
-    identifier TEXT,
-    authority TEXT,
-    pub okta: Option<OktaAuth0>,
+  project_id TEXT PRIMARY KEY,
+  node_route TEXT,
+  name TEXT,
+  identifier TEXT,
+  authority TEXT
 );
 
 CREATE TABLE authority (
-    identifier TEXT PRIMARY KEY,
-    address TEXT NOT NULL,
-    identity BLOB NOT NULL
+  identifier TEXT PRIMARY KEY,
+  address TEXT NOT NULL,
+  identity BLOB NOT NULL
 );
 
 CREATE TABLE okta (
@@ -70,4 +68,4 @@ CREATE TABLE okta (
    tenant_base_url TEXT NOT NULL,
    client_id TEXT NOT NULL,
    certificate TEXT NOT NULL
-)
+);

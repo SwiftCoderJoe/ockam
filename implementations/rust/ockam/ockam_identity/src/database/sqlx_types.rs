@@ -104,6 +104,42 @@ impl ToSqlxType for u64 {
     }
 }
 
+impl ToSqlxType for u32 {
+    fn to_sql(&self) -> SqlxType {
+        SqlxType::Integer(*self as i64)
+    }
+}
+
+impl ToSqlxType for u16 {
+    fn to_sql(&self) -> SqlxType {
+        SqlxType::Integer(*self as i64)
+    }
+}
+
+impl ToSqlxType for u8 {
+    fn to_sql(&self) -> SqlxType {
+        SqlxType::Integer(*self as i64)
+    }
+}
+
+impl ToSqlxType for i32 {
+    fn to_sql(&self) -> SqlxType {
+        SqlxType::Integer(*self as i64)
+    }
+}
+
+impl ToSqlxType for i16 {
+    fn to_sql(&self) -> SqlxType {
+        SqlxType::Integer(*self as i64)
+    }
+}
+
+impl ToSqlxType for i8 {
+    fn to_sql(&self) -> SqlxType {
+        SqlxType::Integer(*self as i64)
+    }
+}
+
 impl ToSqlxType for OffsetDateTime {
     fn to_sql(&self) -> SqlxType {
         SqlxType::Integer(self.unix_timestamp())

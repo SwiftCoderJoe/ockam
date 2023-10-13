@@ -1,19 +1,14 @@
 use std::path::PathBuf;
-use std::sync::Arc;
 
 use ockam::identity::{Identifier, Vault};
-use ockam::SqlxDatabase;
-use ockam_core::async_trait;
-use ockam_multiaddr::MultiAddr;
 
-use crate::cli_state::{CliState, CliStateError};
+use crate::cli_state::CliState;
 use crate::cli_state::{ProjectConfig, Result};
-use crate::config::lookup::{InternetAddress, ProjectLookup};
-use crate::nodes::models::transport::{CreateTransportJson, TransportMode, TransportType};
+use crate::nodes::NodeInfo;
 
 impl CliState {
     pub async fn get_nodes(&self) -> Result<Vec<NodeInfo>> {
-        self.nodes_repository().get_nodes().await
+        Ok(self.nodes_repository().await?.get_nodes().await?)
     }
 
     pub async fn get_node_vault(&self, node_name: &str) -> Result<Vault> {
@@ -29,7 +24,21 @@ impl CliState {
     }
 
     pub async fn create_node(&self, node_name: &str) -> Result<NodeInfo> {
-        todo!("create_node")
+        let identifier = self.create_identity_with_random_name().await?;
+        let node_info = NodeInfo::new(
+            node_name.to_string(),
+            identifier,
+            0,
+            false,
+            false,
+            None,
+            None,
+        );
+        self.nodes_repository()
+            .await?
+            .store_node(&node_info)
+            .await?;
+        Ok(node_info)
     }
 
     pub async fn get_node(&self, node_name: &str) -> Result<NodeInfo> {
@@ -76,13 +85,7 @@ impl CliState {
         todo!("set_default_node")
     }
 
-    pub async fn set_node_transport(
-        &self,
-        node_name: &str,
-        transport_type: TransportType,
-        transport_mode: TransportMode,
-        address: String,
-    ) -> Result<()> {
+    pub async fn set_tcp_listener_address(&self, node_name: &str, address: String) -> Result<()> {
         todo!("set_node_transport")
     }
 
@@ -92,93 +95,6 @@ impl CliState {
 
     pub async fn is_node_api_transport_set(&self, node_name: &str) -> Result<bool> {
         todo!("is_node_api_transport_set")
-    }
-}
-
-#[async_trait]
-pub trait NodesRepository {
-    async fn get_nodes(&self) -> Result<Vec<NodeInfo>>;
-}
-
-pub struct NodesSqlxDatabase {
-    database: Arc<SqlxDatabase>,
-}
-
-impl NodesSqlxDatabase {
-    pub fn new(database: Arc<SqlxDatabase>) -> Self {
-        Self { database }
-    }
-
-    /// Create a new in-memory database
-    pub fn create() -> Arc<Self> {
-        Arc::new(Self::new(Arc::new(SqlxDatabase::in_memory())))
-    }
-}
-
-#[async_trait]
-impl NodesRepository for NodesSqlxDatabase {
-    async fn get_nodes(&self) -> Result<Vec<NodeInfo>> {
-        todo!()
-    }
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct NodeInfo {
-    name: String,
-    identifier: Identifier,
-    verbosity: u8,
-    is_default: bool,
-    is_authority_node: bool,
-    api_transport: Option<CreateTransportJson>,
-    project: Option<ProjectLookup>,
-    vault_name: String,
-    pid: Option<u32>,
-}
-
-impl NodeInfo {
-    pub fn name(&self) -> String {
-        self.name.clone()
-    }
-
-    pub fn identifier(&self) -> Identifier {
-        self.identifier.clone()
-    }
-
-    pub fn is_default(&self) -> bool {
-        self.is_default
-    }
-
-    pub fn pid(&self) -> Option<u32> {
-        self.pid.clone()
-    }
-
-    pub fn is_running(&self) -> bool {
-        self.pid.is_some()
-    }
-
-    pub fn verbosity(&self) -> u8 {
-        self.verbosity
-    }
-
-    pub fn api_transport_port(&self) -> Option<u16> {
-        self.api_transport.as_ref().map(|t| t.addr.port())
-    }
-
-    pub fn api_transport_address(&self) -> Option<InternetAddress> {
-        self.api_transport.as_ref().map(|t| t.addr.clone())
-    }
-
-    pub fn api_transport_multiaddr(&self) -> Result<MultiAddr> {
-        self.api_transport
-            .as_ref()
-            .ok_or(CliStateError::InvalidData(
-                "no transport has been set on the node".to_string(),
-            ))
-            .and_then(|t| t.maddr().map_err(|e| CliStateError::Ockam(e)))
-    }
-
-    pub fn is_authority_node(&self) -> bool {
-        self.is_authority_node
     }
 }
 

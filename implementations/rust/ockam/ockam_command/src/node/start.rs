@@ -57,7 +57,7 @@ async fn run_impl(
     }
     opts.state.kill_node(&node_name, false).await?;
     let node_address = node_info
-        .api_transport_address()
+        .tcp_listener_address()
         .map(|a| a.to_string())
         .unwrap_or("no transport address".to_string());
     opts.global_args.verbose = node_info.verbosity();

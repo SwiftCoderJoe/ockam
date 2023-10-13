@@ -20,6 +20,7 @@ pub use crate::cli_state::traits::*;
 pub use crate::cli_state::trust_contexts::*;
 use crate::cli_state::user_info::UsersInfoState;
 pub use crate::cli_state::vaults::*;
+use crate::nodes::{NodesRepository, NodesSqlxDatabase};
 
 pub mod credentials;
 pub mod enrollment;
@@ -175,12 +176,16 @@ impl CliState {
         todo!("get_identities")
     }
 
-    pub async fn get_vault(&self, vault_name: &str) -> Result<Vault> {
+    pub async fn get_vault(&self, vault_name: &str) -> Result<NamedVault> {
         todo!("get_vault_by_name")
     }
 
-    pub async fn get_default_vault(&self) -> Result<Vault> {
+    pub async fn get_default_vault(&self) -> Result<NamedVault> {
         todo!("get default vault")
+    }
+
+    pub async fn get_default_vault_name(&self) -> Result<String> {
+        todo!("get default vault name")
     }
 
     pub async fn policies_repository(&self) -> Result<Arc<dyn PoliciesRepository>> {

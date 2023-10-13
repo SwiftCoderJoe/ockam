@@ -283,12 +283,7 @@ pub(crate) async fn make_node_manager(
     // add_project_info_to_node_state(NODE_NAME, cli_state, None).await?;
 
     cli_state
-        .set_node_transport(
-            NODE_NAME,
-            TransportType::Tcp,
-            TransportMode::Listen,
-            listener.socket_address().to_string(),
-        )
+        .set_tcp_listener_address(NODE_NAME, listener.socket_address().to_string())
         .await?;
     let trust_context_config = TrustContextConfigBuilder::new(cli_state).build();
 

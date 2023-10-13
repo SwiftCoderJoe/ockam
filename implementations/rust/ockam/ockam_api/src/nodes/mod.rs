@@ -1,8 +1,11 @@
 pub mod config;
 pub(crate) mod connection;
 pub mod models;
+mod nodes_repository_sql;
 pub mod registry;
 pub mod service;
+
+pub use nodes_repository_sql::*;
 pub use service::background_node::*;
 pub use service::in_memory_node::*;
 
