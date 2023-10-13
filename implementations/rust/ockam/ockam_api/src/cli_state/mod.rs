@@ -153,6 +153,24 @@ impl CliState {
         )))
     }
 
+    async fn nodes_repository(&self) -> Result<Arc<dyn NodesRepository>> {
+        Ok(Arc::new(NodesSqlxDatabase::new(self.database().await?)))
+    }
+
+    pub fn node_stdout_log(&self, node_name: &str) -> Result<PathBuf> {
+        Ok(self.node_dir(node_name)?.join("stdout.log"))
+    }
+
+    pub fn node_stderr_log(&self, node_name: &str) -> Result<PathBuf> {
+        Ok(self.node_dir(node_name)?.join("stderr.log"))
+    }
+
+    pub fn node_dir(&self, node_name: &str) -> Result<PathBuf> {
+        let path = self.dir.join("nodes").join(node_name);
+        std::fs::create_dir_all(&path)?;
+        Ok(path)
+    }
+
     pub async fn get_identities(&self, vault: Vault) -> Result<Arc<Identities>> {
         todo!("get_identities")
     }

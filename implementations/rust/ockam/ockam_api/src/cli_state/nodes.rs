@@ -1,6 +1,9 @@
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use ockam::identity::{Identifier, Vault};
+use ockam::SqlxDatabase;
+use ockam_core::async_trait;
 use ockam_multiaddr::MultiAddr;
 
 use crate::cli_state::{CliState, CliStateError};
@@ -10,7 +13,7 @@ use crate::nodes::models::transport::{CreateTransportJson, TransportMode, Transp
 
 impl CliState {
     pub async fn get_nodes(&self) -> Result<Vec<NodeInfo>> {
-        todo!("implement get_node_identifier")
+        self.nodes_repository().get_nodes().await
     }
 
     pub async fn get_node_vault(&self, node_name: &str) -> Result<Vault> {
@@ -92,19 +95,44 @@ impl CliState {
     }
 }
 
+#[async_trait]
+pub trait NodesRepository {
+    async fn get_nodes(&self) -> Result<Vec<NodeInfo>>;
+}
+
+pub struct NodesSqlxDatabase {
+    database: Arc<SqlxDatabase>,
+}
+
+impl NodesSqlxDatabase {
+    pub fn new(database: Arc<SqlxDatabase>) -> Self {
+        Self { database }
+    }
+
+    /// Create a new in-memory database
+    pub fn create() -> Arc<Self> {
+        Arc::new(Self::new(Arc::new(SqlxDatabase::in_memory())))
+    }
+}
+
+#[async_trait]
+impl NodesRepository for NodesSqlxDatabase {
+    async fn get_nodes(&self) -> Result<Vec<NodeInfo>> {
+        todo!()
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct NodeInfo {
     name: String,
     identifier: Identifier,
     verbosity: u8,
-    is_authority_node: bool,
-    project: Option<ProjectLookup>,
-    api_transport: Option<CreateTransportJson>,
-    default_vault_name: String,
-    pid: Option<u32>,
     is_default: bool,
-    stdout_log: PathBuf,
-    stderr_log: PathBuf,
+    is_authority_node: bool,
+    api_transport: Option<CreateTransportJson>,
+    project: Option<ProjectLookup>,
+    vault_name: String,
+    pid: Option<u32>,
 }
 
 impl NodeInfo {
@@ -151,14 +179,6 @@ impl NodeInfo {
 
     pub fn is_authority_node(&self) -> bool {
         self.is_authority_node
-    }
-
-    pub fn stdout_log(&self) -> PathBuf {
-        self.stdout_log.clone()
-    }
-
-    pub fn stderr_log(&self) -> PathBuf {
-        self.stderr_log.clone()
     }
 }
 

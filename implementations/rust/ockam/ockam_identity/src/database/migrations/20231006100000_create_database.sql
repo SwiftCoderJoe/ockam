@@ -38,3 +38,36 @@ CREATE TABLE tcp_outlet (
   alias TEXT NOT NULL,
   payload TEXT
 );
+
+CREATE TABLE node (
+  name TEXT PRIMARY KEY,
+  identifier TEXT NOT NULL,
+  verbosity INTEGER NOT NULL,
+  is_default INTEGER NOT NULL,
+  is_authority INTEGER NOT NULL,
+  transport TEXT,
+  vault_name TEXT NOT NULL,
+  pid INTEGER
+);
+
+CREATE TABLE project (
+    id TEXT PRIMARY KEY,
+    node_route TEXT,
+    name: TEXT,
+    identifier TEXT,
+    authority TEXT,
+    pub okta: Option<OktaAuth0>,
+);
+
+CREATE TABLE authority (
+    identifier TEXT PRIMARY KEY,
+    address TEXT NOT NULL,
+    identity BLOB NOT NULL
+);
+
+CREATE TABLE okta (
+   project_id TEXT,
+   tenant_base_url TEXT NOT NULL,
+   client_id TEXT NOT NULL,
+   certificate TEXT NOT NULL
+)

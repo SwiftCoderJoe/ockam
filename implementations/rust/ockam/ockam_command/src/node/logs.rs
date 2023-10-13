@@ -37,11 +37,10 @@ async fn run_impl(
     (opts, cmd): (CommandGlobalOpts, LogCommand),
 ) -> miette::Result<()> {
     let node_name = get_node_name(&opts.state, &cmd.node_name).await;
-    let node_info = opts.state.get_node(&node_name).await?;
     let log_file_path = if cmd.show_err {
-        node_info.stderr_log()
+        opts.state.node_stderr_log(&node_name)?
     } else {
-        node_info.stdout_log()
+        opts.state.node_stdout_log(&node_name)?
     };
     opts.terminal
         .stdout()
