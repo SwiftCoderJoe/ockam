@@ -2,7 +2,7 @@ use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 use std::process;
 
-use clap::Args;
+use clap::{ArgGroup, Args};
 use miette::Context as _;
 use miette::{miette, IntoDiagnostic};
 use serde::{Deserialize, Serialize};
@@ -297,10 +297,7 @@ async fn start_authority_node(
     // because this would fail if there is no intention to create a secure channel
     debug!("updating node state's setup config");
     opts.state
-        .set_tcp_listener_address(
-            &cmd.node_name,
-            cmd.tcp_listener_address.clone(),
-        )
+        .set_tcp_listener_address(&cmd.node_name, cmd.tcp_listener_address.clone())
         .await?;
     opts.state
         .set_node_pid(&cmd.node_name, process::id())

@@ -69,7 +69,7 @@ async fn run_impl(
         .vault
         .clone()
         .unwrap_or_else(|| default_vault_name(&opts.state));
-    let vault = opts.state.vaults.get(&vault_name)?.get().await?;
+    let vault = opts.state.get_vault(&vault_name)?.get().await?;
     let identities = opts.state.get_identities(vault).await?;
 
     let mut attributes_builder = AttributesBuilder::with_schema(PROJECT_MEMBER_SCHEMA)

@@ -60,7 +60,7 @@ impl CredentialCommand {
 }
 
 pub async fn identities(vault_name: &str, opts: &CommandGlobalOpts) -> Result<Arc<Identities>> {
-    let vault = opts.state.vaults.get(vault_name)?.get().await?;
+    let vault = opts.state.get_vault(vault_name)?.get().await?;
     let identities = opts.state.get_identities(vault).await?;
 
     Ok(identities)

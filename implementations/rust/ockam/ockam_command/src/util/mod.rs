@@ -335,10 +335,7 @@ mod tests {
         cli_state.create_identity_with_random_name().await?;
 
         let n_state = cli_state
-            .set_tcp_listener_address(
-                "n1",
-                "127.0.0.0:4000".to_string(),
-            )
+            .set_tcp_listener_address("n1", "127.0.0.0:4000".to_string())
             .await?;
 
         let test_cases = vec![

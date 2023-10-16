@@ -70,7 +70,10 @@ impl CreateCommand {
             }
 
             let vault = vault_state.get().await?;
-            let identifier = opts.state.create_identity_with_name_and_vault(&self.name, vault_state.name()).await?;
+            let identifier = opts
+                .state
+                .create_identity_with_name_and_vault(&self.name, vault_state.name())
+                .await?;
 
             *is_finished.lock().await = true;
             Ok(identifier)

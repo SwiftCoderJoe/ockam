@@ -170,7 +170,12 @@ pub async fn run_ockam(
     let mut cmd = Command::new(ockam_exe);
 
     if logging_to_file {
-        let (mlog, elog) = { (node_info.stdout_log(), node_info.stderr_log()) };
+        let (mlog, elog) = {
+            (
+                opts.state.stdout_logs(node_name),
+                node_info.stderr_logs(node_name),
+            )
+        };
         let main_log_file = OpenOptions::new()
             .create(true)
             .append(true)

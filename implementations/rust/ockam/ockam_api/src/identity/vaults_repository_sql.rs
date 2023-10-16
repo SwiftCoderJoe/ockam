@@ -5,18 +5,10 @@ use std::sync::Arc;
 use sqlx::sqlite::SqliteRow;
 use sqlx::*;
 
-use ockam::identity::Vault;
+use crate::identity::{NamedVault, VaultsRepository};
 use ockam::{FromSqlxError, SqlxDatabase, ToSqlxType, ToVoid};
 use ockam_core::async_trait;
 use ockam_core::Result;
-
-#[async_trait]
-pub trait VaultsRepository: Send + Sync + 'static {
-    async fn name_vault(&self, name: &str, path: PathBuf) -> Result<()>;
-    async fn get_vault_by_name(&self, name: &str) -> Result<Option<NamedVault>>;
-    async fn get_default_vault(&self) -> Result<Option<NamedVault>>;
-    async fn get_default_vault_name(&self) -> Result<Option<String>>;
-}
 
 pub struct VaultsSqlxDatabase {
     database: Arc<SqlxDatabase>,
@@ -68,38 +60,6 @@ impl VaultsRepository for VaultsSqlxDatabase {
             .await
             .into_core()?;
         Ok(row.map(|r| r.get(0)))
-    }
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct NamedVault {
-    name: String,
-    path: PathBuf,
-    is_default: bool,
-}
-
-impl NamedVault {
-    pub fn new(name: String, path: PathBuf, is_default: bool) -> Self {
-        Self {
-            name,
-            path,
-            is_default,
-        }
-    }
-    pub fn name(&self) -> String {
-        self.name.clone()
-    }
-
-    pub fn path(&self) -> PathBuf {
-        self.path.clone()
-    }
-
-    pub fn is_default(&self) -> bool {
-        self.is_default
-    }
-
-    pub async fn vault(&self) -> Result<Vault> {
-        Vault::create_with_persistent_storage_path(&self.path).await
     }
 }
 

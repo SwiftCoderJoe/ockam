@@ -6,7 +6,7 @@ use tracing::warn;
 
 use ockam::identity::Identifier;
 use ockam::Context;
-use ockam_api::cli_state::{EnrollmentStatus, IdentityEnrollment};
+use ockam_api::cli_state::enrollment::IdentityEnrollment;
 use ockam_api::cloud::project::{OrchestratorVersionInfo, Projects};
 use ockam_api::nodes::models::base::NodeStatus as NodeStatusModel;
 use ockam_api::nodes::{BackgroundNode, InMemoryNode};

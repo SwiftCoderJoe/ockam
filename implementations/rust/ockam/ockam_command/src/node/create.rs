@@ -282,10 +282,7 @@ async fn run_foreground_node(
 
     opts.state.set_node_pid(&node_name, process::id()).await?;
     opts.state
-        .set_tcp_listener_address(
-            &node_name,
-            listener.socket_address().to_string(),
-        )
+        .set_tcp_listener_address(&node_name, listener.socket_address().to_string())
         .await?;
 
     let pre_trusted_identities = load_pre_trusted_identities(&cmd)?;

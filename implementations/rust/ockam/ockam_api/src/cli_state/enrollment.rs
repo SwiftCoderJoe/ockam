@@ -34,7 +34,7 @@ impl CliState {
 }
 
 #[async_trait]
-pub trait EnrollmentsRepository {
+pub trait EnrollmentsRepository: Send + Sync + 'static {
     async fn enroll_identity(&self, identifier: &Identifier) -> Result<()>;
     async fn get_enrolled_identities(&self) -> Result<Vec<IdentityEnrollment>>;
     async fn get_all_identities_enrollments(&self) -> Result<Vec<IdentityEnrollment>>;
@@ -178,8 +178,9 @@ mod tests {
 
     use tempfile::NamedTempFile;
 
+    use crate::identity::{IdentitiesRepository, IdentitiesSqlxDatabase};
     use ockam::identity::models::ChangeHistory;
-    use ockam::identity::{IdentitiesRepository, IdentitiesSqlxDatabase, Identity, Vault};
+    use ockam::identity::{ChangeHistoryRepository, ChangeHistorySqlxDatabase, Identity, Vault};
 
     use super::*;
 
@@ -234,8 +235,10 @@ mod tests {
     }
 
     async fn store_identity(path: &Path, name: &str, identity: Identity) -> Result<Identity> {
+        let change_history_repository = create_change_history_repository(path).await?;
         let identities_repository = create_identities_repository(path).await?;
-        identities_repository.store_identity(&identity).await?;
+        change_history_repository.store_identity(&identity).await?;
+
         identities_repository
             .name_identity(identity.identifier(), name)
             .await?;
@@ -250,6 +253,13 @@ mod tests {
     async fn create_repository(path: &Path) -> Result<Arc<dyn EnrollmentsRepository>> {
         let db = SqlxDatabase::create(path).await?;
         Ok(Arc::new(EnrollmentsSqlxDatabase::new(Arc::new(db))))
+    }
+
+    async fn create_change_history_repository(
+        path: &Path,
+    ) -> Result<Arc<dyn ChangeHistoryRepository>> {
+        let db = SqlxDatabase::create(path).await?;
+        Ok(Arc::new(ChangeHistorySqlxDatabase::new(Arc::new(db))))
     }
 
     async fn create_identities_repository(path: &Path) -> Result<Arc<dyn IdentitiesRepository>> {

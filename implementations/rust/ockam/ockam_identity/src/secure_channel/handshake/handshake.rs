@@ -564,13 +564,13 @@ mod tests {
     use super::*;
     use hex::decode;
     use ockam_core::Result;
-    use ockam_node::InMemoryKeyValueStorage;
+    use ockam_vault::storage::SecretsSqlxDatabase;
     use ockam_vault::{SoftwareVaultForSecureChannels, X25519SecretKey};
 
     #[tokio::test]
     async fn test_initialization() -> Result<()> {
         let vault = Arc::new(SoftwareVaultForSecureChannels::new(
-            InMemoryKeyValueStorage::create(),
+            SecretsSqlxDatabase::create(),
         ));
 
         let static_key = vault.generate_static_x25519_secret_key().await?;
