@@ -7,13 +7,13 @@ use ockam_core::async_trait;
 use ockam_core::compat::sync::Arc;
 use ockam_core::Result;
 
-use crate::database::{FromSqlxError, SqlxDatabase, SqlxType, ToSqlxType, ToVoid};
 use crate::models::{ChangeHistory, Identifier};
 use crate::utils::now;
 use crate::{
     AttributesEntry, IdentitiesReader, IdentitiesRepository, IdentitiesWriter, Identity,
     IdentityAttributesReader, IdentityAttributesWriter, NamedIdentity, TimestampInSeconds,
 };
+use ockam_node::database::{FromSqlxError, SqlxDatabase, SqlxType, ToSqlxType, ToVoid};
 
 /// Implementation of `IdentitiesRepository` trait based on an underlying database
 /// using sqlx as its API, and Sqlite as its driver

@@ -7,8 +7,8 @@ use ockam_core::compat::string::{String, ToString};
 use ockam_core::compat::sync::Arc;
 use ockam_core::errcode::{Kind, Origin};
 use ockam_core::Result;
+use ockam_node::database::{FromSqlxError, SqlxDatabase, SqlxType, ToSqlxType, ToVoid};
 
-use crate::database::{FromSqlxError, SqlxDatabase, SqlxType, ToSqlxType, ToVoid};
 use crate::identity::IdentityConstants;
 use crate::models::{Identifier, PurposeKeyAttestation};
 use crate::purpose_keys::storage::{PurposeKeysReader, PurposeKeysRepository, PurposeKeysWriter};

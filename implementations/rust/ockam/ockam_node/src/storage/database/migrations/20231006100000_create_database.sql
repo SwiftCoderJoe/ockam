@@ -69,3 +69,20 @@ CREATE TABLE okta (
    client_id TEXT NOT NULL,
    certificate TEXT NOT NULL
 );
+
+CREATE TABLE vault (
+   name TEXT PRIMARY KEY,
+   path TEXT NOT NULL,
+   is_default INTEGER
+);
+
+CREATE TABLE signing_secret (
+   handle BLOB PRIMARY KEY,
+   secret_type TEXT NOT NULL,
+   secret BLOB NOT NULL
+);
+
+CREATE TABLE x25519_secret (
+   handle BLOB PRIMARY KEY,
+   secret BLOB NOT NULL
+);

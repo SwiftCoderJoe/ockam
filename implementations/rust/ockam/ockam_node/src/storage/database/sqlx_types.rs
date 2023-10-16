@@ -1,4 +1,5 @@
 use std::net::SocketAddr;
+use std::path::PathBuf;
 
 use sqlx::database::HasArguments;
 use sqlx::encode::IsNull;
@@ -64,11 +65,11 @@ impl Encode<'_, Sqlite> for SqlxType {
 /// ```
 /// use std::str::FromStr;
 /// use sqlx::query_as;
-/// use ockam_identity::Identifier;
+/// use time::OffsetDateTime;
 ///
-/// let identifier = Identifier::from_str("Ie86be15e83d1c93e24dd1967010b01b6df491b45").unwrap();
+/// let date_time = OffsetDateTime::from_unix_timestamp(10000000).unwrap();
 ///
-/// let query = query_as("SELECT * FROM identity WHERE identifier=$1").bind(identifier.as_sql());
+/// let query = query_as("SELECT * FROM identity WHERE created_at >= $1").bind(date_time.as_sql());
 ///```
 ///
 pub trait ToSqlxType {
@@ -152,8 +153,25 @@ impl ToSqlxType for Vec<u8> {
     }
 }
 
+impl ToSqlxType for &[u8; 32] {
+    fn to_sql(&self) -> SqlxType {
+        SqlxType::Blob(self.to_vec().clone())
+    }
+}
+
 impl ToSqlxType for SocketAddr {
     fn to_sql(&self) -> SqlxType {
         SqlxType::Text(self.to_string())
+    }
+}
+
+impl ToSqlxType for PathBuf {
+    fn to_sql(&self) -> SqlxType {
+        SqlxType::Text(
+            self.as_path()
+                .to_str()
+                .unwrap_or("a path should be a valid string")
+                .into(),
+        )
     }
 }

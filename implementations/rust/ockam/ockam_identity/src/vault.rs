@@ -1,13 +1,10 @@
 use ockam_core::compat::sync::Arc;
-use ockam_node::{InMemoryKeyValueStorage, KeyValueStorage};
-use ockam_vault::legacy::{KeyId, StoredSecret};
+use ockam_node::database::SqlxDatabase;
+use ockam_vault::storage::{SecretsRepository, SecretsSqlxDatabase};
 use ockam_vault::{
     SoftwareVaultForSecureChannels, SoftwareVaultForSigning, SoftwareVaultForVerifyingSignatures,
     VaultForSecureChannels, VaultForSigning, VaultForVerifyingSignatures,
 };
-
-/// Storage for Vault persistent values
-pub type VaultStorage = Arc<dyn KeyValueStorage<KeyId, StoredSecret>>;
 
 /// Vault
 #[derive(Clone)]
@@ -38,7 +35,7 @@ impl Vault {
         }
     }
 
-    /// Create Software implementation Vault with [`InMemoryKeyVaultStorage`]
+    /// Create Software implementation Vault with an in-memory storage
     pub fn create() -> Self {
         Self::new(
             Self::create_identity_vault(),
@@ -48,25 +45,21 @@ impl Vault {
         )
     }
 
-    /// Create [`SoftwareVaultForSigning`] with [`InMemoryKeyVaultStorage`]
+    /// Create [`SoftwareVaultForSigning`] with an in-memory storage
     pub fn create_identity_vault() -> Arc<dyn VaultForSigning> {
-        Arc::new(SoftwareVaultForSigning::new(
-            InMemoryKeyValueStorage::create(),
-        ))
+        Arc::new(SoftwareVaultForSigning::new(SecretsSqlxDatabase::create()))
     }
 
-    /// Create [`SoftwareSecureChannelVault`] with [`InMemoryKeyVaultStorage`]
+    /// Create [`SoftwareSecureChannelVault`] with an in-memory storage
     pub fn create_secure_channel_vault() -> Arc<dyn VaultForSecureChannels> {
         Arc::new(SoftwareVaultForSecureChannels::new(
-            InMemoryKeyValueStorage::create(),
+            SecretsSqlxDatabase::create(),
         ))
     }
 
-    /// Create [`SoftwareVaultForSigning`] with [`InMemoryKeyVaultStorage`]
+    /// Create [`SoftwareVaultForSigning`] with an in-memory storage
     pub fn create_credential_vault() -> Arc<dyn VaultForSigning> {
-        Arc::new(SoftwareVaultForSigning::new(
-            InMemoryKeyValueStorage::create(),
-        ))
+        Arc::new(SoftwareVaultForSigning::new(SecretsSqlxDatabase::create()))
     }
 
     /// Create [`SoftwareVaultForVerifyingSignatures`]
@@ -76,21 +69,23 @@ impl Vault {
 }
 
 impl Vault {
-    /// Create Software Vaults with [`PersistentStorage`] with a given path
+    /// Create Software Vaults and persist them to a given path
     #[cfg(feature = "std")]
     pub async fn create_with_persistent_storage_path(
         path: &std::path::Path,
     ) -> ockam_core::Result<Vault> {
-        let storage = ockam_vault::storage::PersistentStorage::create(path).await?;
-        Ok(Self::create_with_persistent_storage(storage))
+        let database = Arc::new(SqlxDatabase::create(path).await?);
+        Ok(Self::create_with_secrets_repository(Arc::new(
+            SecretsSqlxDatabase::new(database),
+        )))
     }
 
-    /// Create Software Vaults with a given [`VaultStorage`]r
-    pub fn create_with_persistent_storage(storage: VaultStorage) -> Vault {
+    /// Create Software Vaults with a given secrets repository
+    pub fn create_with_secrets_repository(repository: Arc<dyn SecretsRepository>) -> Vault {
         Self::new(
-            Arc::new(SoftwareVaultForSigning::new(storage.clone())),
-            Arc::new(SoftwareVaultForSecureChannels::new(storage.clone())),
-            Arc::new(SoftwareVaultForSigning::new(storage)),
+            Arc::new(SoftwareVaultForSigning::new(repository.clone())),
+            Arc::new(SoftwareVaultForSecureChannels::new(repository.clone())),
+            Arc::new(SoftwareVaultForSigning::new(repository.clone())),
             Arc::new(SoftwareVaultForVerifyingSignatures {}),
         )
     }

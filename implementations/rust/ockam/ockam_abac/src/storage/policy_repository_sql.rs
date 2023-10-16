@@ -4,7 +4,7 @@ use ockam_core::async_trait;
 use ockam_core::compat::sync::Arc;
 use ockam_core::compat::vec::Vec;
 use ockam_core::Result;
-use ockam_identity::database::{FromSqlxError, SqlxDatabase, SqlxType, ToSqlxType, ToVoid};
+use ockam_node::database::{FromSqlxError, SqlxDatabase, SqlxType, ToSqlxType, ToVoid};
 
 use crate::{Action, Expr, PoliciesRepository, Resource};
 

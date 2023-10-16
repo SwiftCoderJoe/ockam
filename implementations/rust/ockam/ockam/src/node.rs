@@ -5,8 +5,9 @@ use ockam_core::{
     Address, AsyncTryClone, IncomingAccessControl, Message, OutgoingAccessControl, Processor,
     Result, Route, Routed, Worker,
 };
-use ockam_identity::{PurposeKeys, Vault, VaultStorage};
+use ockam_identity::{PurposeKeys, Vault};
 use ockam_node::{Context, HasContext, MessageReceiveOptions, MessageSendReceiveOptions};
+use ockam_vault::storage::SecretsRepository;
 use ockam_vault::SigningSecretKeyHandle;
 
 use crate::identity::models::Identifier;
@@ -38,7 +39,7 @@ pub struct Node {
 /// use ockam_vault::storage::PersistentStorage;
 ///
 /// async fn make_node(ctx: Context) -> Result<Node> {
-///   let node = Node::builder().with_vault_storage(PersistentStorage::create(Path::new("vault")).await?).build(&ctx).await?;
+///   let node = Node::builder().with_secrets_repository(PersistentStorage::create(Path::new("vault")).await?).build(&ctx).await?;
 ///   Ok(node)
 /// }
 ///
@@ -334,9 +335,9 @@ impl NodeBuilder {
         self
     }
 
-    /// With Software Vault with given Storage
-    pub fn with_vault_storage(mut self, storage: VaultStorage) -> Self {
-        self.builder = self.builder.with_vault_storage(storage);
+    /// With Software Vault with given secrets repository
+    pub fn with_secrets_repository(mut self, repository: Arc<dyn SecretsRepository>) -> Self {
+        self.builder = self.builder.with_secrets_repository(repository);
         self
     }
 

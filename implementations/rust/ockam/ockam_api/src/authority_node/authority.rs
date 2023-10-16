@@ -7,13 +7,13 @@ use ockam::identity::{
     IdentityAttributesWriter, SecureChannelListenerOptions, SecureChannels, TrustEveryonePolicy,
 };
 use ockam::identity::{IdentitiesSqlxDatabase, Vault};
-use ockam::SqlxDatabase;
 use ockam_abac::expr::{and, eq, ident, str};
 use ockam_abac::{AbacAccessControl, Env};
 use ockam_core::compat::sync::Arc;
 use ockam_core::errcode::{Kind, Origin};
 use ockam_core::flow_control::FlowControlId;
 use ockam_core::{Error, Result, Worker};
+use ockam_node::database::SqlxDatabase;
 use ockam_node::{Context, WorkerBuilder};
 use ockam_transport_tcp::{TcpListenerOptions, TcpTransport};
 

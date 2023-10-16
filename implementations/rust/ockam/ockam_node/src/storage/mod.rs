@@ -21,6 +21,9 @@ mod to_string_key;
 /// Trait defining the functions for a value storage
 mod value_storage;
 
+/// Database support
+pub mod database;
+
 #[cfg(feature = "std")]
 pub use file_key_value_storage::*;
 #[cfg(feature = "std")]

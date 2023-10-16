@@ -211,15 +211,3 @@ mod traits {
         }
     }
 }
-
-pub struct NamedVault {
-    name: String,
-    is_default: bool,
-    vault: Vault,
-}
-
-impl NamedVault {
-    pub fn vault(&self) -> Vault {
-        self.vault.clone()
-    }
-}

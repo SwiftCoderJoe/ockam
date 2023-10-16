@@ -1,8 +1,9 @@
+use ockam_core::compat::sync::Arc;
+use ockam_vault::storage::SecretsRepository;
+
 use crate::identities::{Identities, IdentitiesRepository};
 use crate::purpose_keys::storage::PurposeKeysRepository;
-use crate::{Vault, VaultStorage};
-
-use ockam_core::compat::sync::Arc;
+use crate::Vault;
 
 /// Builder for Identities services
 #[derive(Clone)]
@@ -18,9 +19,9 @@ pub fn identities() -> Arc<Identities> {
 }
 
 impl IdentitiesBuilder {
-    /// With Software Vault with given Storage
-    pub fn with_vault_storage(mut self, storage: VaultStorage) -> Self {
-        self.vault = Vault::create_with_persistent_storage(storage);
+    /// With Software Vault with given secrets repository
+    pub fn with_secrets_repository(mut self, repository: Arc<dyn SecretsRepository>) -> Self {
+        self.vault = Vault::create_with_secrets_repository(repository);
         self
     }
 

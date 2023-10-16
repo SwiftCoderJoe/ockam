@@ -75,8 +75,5 @@ pub mod secure_channel;
 /// Service supporting the creation of secure channel listener and connection to a listener
 pub mod secure_channels;
 
-/// Support for accessing the database
-pub mod database;
-
 /// Vault
 pub mod vault;

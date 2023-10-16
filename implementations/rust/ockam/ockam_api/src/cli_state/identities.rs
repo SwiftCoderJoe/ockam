@@ -12,7 +12,9 @@ impl CliState {
         vault_name: &str,
     ) -> Result<Identifier> {
         let vault = self.get_vault(vault_name).await?;
-        let identifier = self.create_identity_with_vault(vault.vault()).await?;
+        let identifier = self
+            .create_identity_with_vault(vault.vault().await?)
+            .await?;
         self.identities_repository()
             .await?
             .name_identity(&identifier, name)
@@ -23,7 +25,9 @@ impl CliState {
     /// Create an identity associated with a name and the default vault
     pub async fn create_identity_with_name(&self, name: &str) -> Result<Identifier> {
         let vault = self.get_default_vault().await?;
-        let identifier = self.create_identity_with_vault(vault.vault()).await?;
+        let identifier = self
+            .create_identity_with_vault(vault.vault().await?)
+            .await?;
         self.identities_repository()
             .await?
             .name_identity(&identifier, name)
@@ -34,11 +38,11 @@ impl CliState {
     /// Create an identity associated with no name
     pub async fn create_identity(&self) -> Result<Identifier> {
         let vault = self.get_default_vault().await?;
-        self.create_identity_with_vault(vault.vault()).await
+        self.create_identity_with_vault(vault.vault().await?).await
     }
 
     /// Create an identity associated with no name
-    pub async fn create_identity_with_vault(&self, vault: Vault) -> Result<Identifier> {
+    async fn create_identity_with_vault(&self, vault: Vault) -> Result<Identifier> {
         Ok(self
             .get_identities(vault)
             .await?
@@ -135,7 +139,11 @@ impl CliState {
             Some(identity) => Ok(Identity::import_from_change_history(
                 Some(&identity.identifier()),
                 identity.change_history(),
-                self.get_default_vault().await?.vault().verifying_vault,
+                self.get_default_vault()
+                    .await?
+                    .vault()
+                    .await?
+                    .verifying_vault,
             )
             .await?),
             None => Err(Self::missing_identifier(name).into()),

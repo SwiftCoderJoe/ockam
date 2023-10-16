@@ -1,3 +1,4 @@
+use futures::executor;
 use std::ops::Deref;
 use std::path::Path;
 
@@ -48,7 +49,7 @@ impl SqlxDatabase {
     /// so that we don't have to propagate async in all the code base when using an
     /// in-memory database, especially when writing examples
     pub fn in_memory() -> Self {
-        futures::executor::block_on(async {
+        executor::block_on(async {
             debug!("create an in memory database");
             let pool = Self::create_in_memory_connection_pool()
                 .await
@@ -86,7 +87,7 @@ impl SqlxDatabase {
     }
 
     async fn migrate(&self) -> Result<()> {
-        sqlx::migrate!("./src/database/migrations")
+        sqlx::migrate!("./src/storage/database/migrations")
             .run(&self.pool)
             .await
             .map_err(Self::map_migrate_err)

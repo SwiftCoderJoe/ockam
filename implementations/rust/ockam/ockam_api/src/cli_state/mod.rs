@@ -4,11 +4,13 @@ use miette::Diagnostic;
 use rand::random;
 use thiserror::Error;
 
+use ockam::identity::storage::{PurposeKeysRepository, PurposeKeysSqlxDatabase};
 use ockam::identity::{Identities, IdentitiesRepository, IdentitiesSqlxDatabase, Vault};
 use ockam::SqlxDatabase;
 use ockam_abac::{PoliciesRepository, PolicySqlxDatabase};
 use ockam_core::compat::sync::Arc;
 use ockam_core::env::get_env_with_default;
+use ockam_core::errcode::{Kind, Origin};
 use ockam_node::Executor;
 
 pub use crate::cli_state::credentials::*;
@@ -20,6 +22,7 @@ pub use crate::cli_state::traits::*;
 pub use crate::cli_state::trust_contexts::*;
 use crate::cli_state::user_info::UsersInfoState;
 pub use crate::cli_state::vaults::*;
+use crate::identity::{NamedVault, VaultsRepository, VaultsSqlxDatabase};
 use crate::nodes::{NodesRepository, NodesSqlxDatabase};
 
 pub mod credentials;
@@ -148,6 +151,16 @@ impl CliState {
         )))
     }
 
+    pub async fn purpose_keys_repository(&self) -> Result<Arc<dyn PurposeKeysRepository>> {
+        Ok(Arc::new(PurposeKeysSqlxDatabase::new(
+            self.database().await?,
+        )))
+    }
+
+    pub async fn vaults_repository(&self) -> Result<Arc<dyn VaultsRepository>> {
+        Ok(Arc::new(VaultsSqlxDatabase::new(self.database().await?)))
+    }
+
     async fn enrollment_repository(&self) -> Result<Arc<dyn EnrollmentsRepository>> {
         Ok(Arc::new(EnrollmentsSqlxDatabase::new(
             self.database().await?,
@@ -173,19 +186,55 @@ impl CliState {
     }
 
     pub async fn get_identities(&self, vault: Vault) -> Result<Arc<Identities>> {
-        todo!("get_identities")
+        Ok(Identities::builder()
+            .with_vault(vault)
+            .with_identities_repository(self.identities_repository().await?)
+            .with_purpose_keys_repository(self.purpose_keys_repository().await?)
+            .build())
     }
 
     pub async fn get_vault(&self, vault_name: &str) -> Result<NamedVault> {
-        todo!("get_vault_by_name")
+        let result = self
+            .vaults_repository()
+            .await?
+            .get_vault_by_name(vault_name)
+            .await?;
+        result.ok_or_else(|| {
+            ockam_core::Error::new(
+                Origin::Api,
+                Kind::NotFound,
+                format!("no vault found with name {vault_name}"),
+            )
+            .into()
+        })
     }
 
     pub async fn get_default_vault(&self) -> Result<NamedVault> {
-        todo!("get default vault")
+        let result = self.vaults_repository().await?.get_default_vault().await?;
+        result.ok_or_else(|| {
+            ockam_core::Error::new(
+                Origin::Api,
+                Kind::NotFound,
+                format!("no default vault found"),
+            )
+            .into()
+        })
     }
 
     pub async fn get_default_vault_name(&self) -> Result<String> {
-        todo!("get default vault name")
+        let result = self
+            .vaults_repository()
+            .await?
+            .get_default_vault_name()
+            .await?;
+        result.ok_or_else(|| {
+            ockam_core::Error::new(
+                Origin::Api,
+                Kind::NotFound,
+                format!("no default vault found"),
+            )
+            .into()
+        })
     }
 
     pub async fn policies_repository(&self) -> Result<Arc<dyn PoliciesRepository>> {
