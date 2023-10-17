@@ -8,7 +8,7 @@ use ockam_core::Address;
 
 use crate::node::NodeOpts;
 use crate::util::{api, node_rpc};
-use crate::{fmt_ok, CommandGlobalOpts};
+use crate::{docs, fmt_ok, CommandGlobalOpts};
 
 const LONG_ABOUT: &str = include_str!("./static/delete/long_about.txt");
 const AFTER_LONG_HELP: &str = include_str!("./static/delete/after_long_help.txt");

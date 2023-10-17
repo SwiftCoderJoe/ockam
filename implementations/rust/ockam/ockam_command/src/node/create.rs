@@ -6,7 +6,6 @@ use colorful::Colorful;
 use miette::Context as _;
 use miette::{miette, IntoDiagnostic};
 use minicbor::{Decoder, Encode};
-use rand::prelude::random;
 use tokio::sync::Mutex;
 use tokio::time::{sleep, Duration};
 use tokio::try_join;
@@ -35,8 +34,9 @@ use crate::util::api;
 use crate::util::api::TrustContextOpts;
 use crate::util::{embedded_node_that_is_not_stopped, exitcode};
 use crate::util::{local_cmd, node_rpc};
-use crate::{docs, shutdown, CommandGlobalOpts, Result};
-use crate::{fmt_log, fmt_ok};
+use crate::{docs, fmt_log, fmt_ok};
+use crate::{shutdown, CommandGlobalOpts, Result};
+use rand::prelude::random;
 
 use super::show::is_node_up;
 
@@ -172,7 +172,7 @@ pub(crate) async fn background_mode(
     ctx: Context,
     (opts, cmd): (CommandGlobalOpts, CreateCommand),
 ) -> miette::Result<()> {
-    let node_name = cmd.node_name;
+    let node_name = cmd.node_name.clone();
     if opts.state.is_node_running(&node_name).await? {
         eprintln!("{:?}", miette!("Node {} is already running", &node_name));
         std::process::exit(exitcode::SOFTWARE);
@@ -243,13 +243,13 @@ async fn run_foreground_node(
     // and there is no existing state for it yet.
     let node_name = cmd.node_name;
     if !cmd.child_process && !opts.state.get_node(&node_name).await.is_ok() {
-        init_node_state(
-            &opts.state,
-            &node_name,
-            cmd.vault.as_deref(),
-            cmd.identity.as_deref(),
-        )
-        .await?;
+        opts.state
+            .create_node_with_optional_name_and_optional_vault(
+                &Some(node_name),
+                &cmd.identity,
+                &cmd.vault,
+            )
+            .await?;
     }
 
     add_project_info_to_node_state(
@@ -411,15 +411,13 @@ pub async fn spawn_background_node(
     opts: &CommandGlobalOpts,
     cmd: CreateCommand,
 ) -> miette::Result<()> {
-    let node_name = parse_node_name(&cmd.node_name)?;
-    // Create node state, including the vault and identity if don't exist
-    // init_node_state(
-    //     &opts.state,
-    //     &node_name,
-    //     cmd.vault.as_deref(),
-    //     cmd.identity.as_deref(),
-    // )
-    // .await?;
+    opts.state
+        .create_node_with_optional_name_and_optional_vault(
+            &Some(cmd.node_name.clone()),
+            &cmd.identity,
+            &cmd.vault,
+        )
+        .await?;
 
     let trust_context_path = match cmd.trust_context_opts.trust_context.clone() {
         Some(tc) => {
@@ -433,7 +431,7 @@ pub async fn spawn_background_node(
     // CLI in foreground mode to start the newly created node
     spawn_node(
         opts,
-        &node_name,
+        &cmd.node_name,
         &cmd.tcp_listener_address,
         cmd.trust_context_opts.project_path.as_ref(),
         cmd.trusted_identities.as_ref(),

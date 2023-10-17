@@ -39,7 +39,7 @@ async fn run_impl(
     ctx: Context,
     (mut opts, cmd): (CommandGlobalOpts, StartCommand),
 ) -> miette::Result<()> {
-    let node_name = opts.state.get_node_name(&cmd.node_name).await?;
+    let node_name = opts.state.get_node_name_or_default(&cmd.node_name).await?;
     let node_info = opts.state.get_node(&node_name).await?;
     // Abort if node is already running
     if node_info.is_running() {

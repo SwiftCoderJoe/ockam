@@ -4,7 +4,7 @@ use std::time::Duration;
 use clap::Args;
 use tracing::warn;
 
-use ockam::identity::Identifier;
+use ockam::identity::{Identifier, TimestampInSeconds};
 use ockam::Context;
 use ockam_api::cli_state::enrollment::{EnrollmentStatus, IdentityEnrollment};
 use ockam_api::cloud::project::{OrchestratorVersionInfo, Projects};
@@ -180,7 +180,11 @@ impl StatusData {
         let mut identities = vec![];
         for identity in identities_details.into_iter() {
             let mut identity_status = IdentityWithLinkedNodes {
-                identity,
+                identifier: identity.identifier(),
+                name: identity.name(),
+                enrolled_at: identity
+                    .enrolled_at()
+                    .map(|o| TimestampInSeconds::from(o.unix_timestamp() as u64)),
                 nodes: vec![],
             };
             nodes_details.retain(|nd| nd.identifier == identity_status.identifier());
@@ -196,14 +200,17 @@ impl StatusData {
     }
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
 struct IdentityWithLinkedNodes {
-    identity: IdentityEnrollment,
+    identifier: Identifier,
+    name: Option<String>,
+    enrolled_at: Option<TimestampInSeconds>,
     nodes: Vec<NodeDetails>,
 }
 
 impl IdentityWithLinkedNodes {
     fn identifier(&self) -> Identifier {
-        self.identity.identifier().clone()
+        self.identifier.clone()
     }
 }
 

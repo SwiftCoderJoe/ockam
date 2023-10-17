@@ -8,7 +8,7 @@ pub(crate) use get::GetCommand;
 pub(crate) use issue::IssueCommand;
 pub(crate) use list::ListCommand;
 use ockam::identity::models::CredentialAndPurposeKey;
-use ockam::identity::{Identifier, Identities, Identity};
+use ockam::identity::{Identifier, Identities};
 use ockam_api::cli_state::{CredentialState, StateItemTrait};
 pub(crate) use present::PresentCommand;
 pub(crate) use show::ShowCommand;
@@ -60,24 +60,6 @@ impl CredentialCommand {
     }
 }
 
-pub async fn identities(vault_name: &str, opts: &CommandGlobalOpts) -> Result<Arc<Identities>> {
-    let vault = opts.state.get_vault(vault_name).await?.get().await?;
-    let identities = opts.state.get_identities(vault).await?;
-
-    Ok(identities)
-}
-
-pub async fn identity(identity: &str, identities: Arc<Identities>) -> Result<Identity> {
-    let identity_as_bytes = hex::decode(identity)?;
-
-    let identity = identities
-        .identities_creation()
-        .import(None, &identity_as_bytes)
-        .await?;
-
-    Ok(identity)
-}
-
 pub async fn validate_encoded_cred(
     encoded_cred: &[u8],
     identities: Arc<Identities>,
@@ -108,7 +90,11 @@ impl CredentialOutput {
     ) -> Result<Self> {
         let config = state.config();
 
-        let identities = identities(vault_name, opts).await.into_diagnostic()?;
+        let identities = opts
+            .state
+            .get_identities_with_vault(vault_name)
+            .await
+            .into_diagnostic()?;
 
         let is_verified = validate_encoded_cred(
             &config.encoded_credential,

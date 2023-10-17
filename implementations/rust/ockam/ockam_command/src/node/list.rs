@@ -31,7 +31,7 @@ impl ListCommand {
 }
 
 async fn run_impl(
-    ctx: Context,
+    _ctx: Context,
     (opts, _cmd): (CommandGlobalOpts, ListCommand),
 ) -> miette::Result<()> {
     let node_infos = opts.state.get_nodes().await?;

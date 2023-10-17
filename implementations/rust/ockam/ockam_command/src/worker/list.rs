@@ -1,6 +1,5 @@
 use clap::Args;
 use colorful::Colorful;
-use miette::miette;
 use tokio::sync::Mutex;
 use tokio::try_join;
 

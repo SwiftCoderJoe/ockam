@@ -11,7 +11,7 @@ use ockam_core::{Address, Route};
 
 use crate::node::NodeOpts;
 use crate::util::{api, exitcode, node_rpc};
-use crate::{fmt_log, fmt_ok, terminal::OckamColor, CommandGlobalOpts};
+use crate::{docs, fmt_log, fmt_ok, terminal::OckamColor, CommandGlobalOpts};
 
 const LONG_ABOUT: &str = include_str!("./static/create/long_about.txt");
 const AFTER_LONG_HELP: &str = include_str!("./static/create/after_long_help.txt");

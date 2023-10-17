@@ -4,7 +4,6 @@ use miette::IntoDiagnostic;
 use ockam::Context;
 use ockam_api::cli_state::{StateDirTrait, StateItemTrait};
 
-use crate::credential::identities;
 use crate::output::CredentialAndPurposeKeyDisplay;
 use crate::{
     credential::validate_encoded_cred, util::node_rpc, vault::default_vault_name, CommandGlobalOpts,
@@ -44,7 +43,7 @@ pub(crate) async fn display_credential(
     let cred = opts.state.credentials.get(cred_name)?;
     let cred_config = cred.config();
 
-    let identities = identities(vault_name, opts).await?;
+    let identities = opts.state.get_identities_with_vault(vault_name).await?;
     identities
         .identities_creation()
         .import(

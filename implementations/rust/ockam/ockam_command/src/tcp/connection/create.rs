@@ -53,7 +53,10 @@ impl CreateCommand {
                     println!("{}", response.multiaddr().into_diagnostic()?);
                     return Ok(());
                 }
-                let from = opts.state.get_node_name(&self.node_opts.from).await?;
+                let from = opts
+                    .state
+                    .get_node_name_or_default(&self.node_opts.from)
+                    .await?;
                 let to = response.socket_addr().into_diagnostic()?;
                 if opts.global_args.no_color {
                     println!("\n  TCP Connection:");

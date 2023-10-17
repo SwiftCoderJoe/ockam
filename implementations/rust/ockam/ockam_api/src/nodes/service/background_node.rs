@@ -44,7 +44,7 @@ impl BackgroundNode {
         node_name: &Option<String>,
     ) -> miette::Result<BackgroundNode> {
         let tcp_transport = TcpTransport::create(ctx).await.into_diagnostic()?;
-        let node_name = cli_state.get_node_name(node_name).await?;
+        let node_name = cli_state.get_node_name_or_default(node_name).await?;
         if !cli_state.is_node_running(&node_name).await? {
             return Err(miette!("The node '{}' is not running", node_name));
         }

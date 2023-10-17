@@ -2,7 +2,6 @@ use clap::Args;
 
 use ockam::Context;
 use ockam_abac::{Action, Resource};
-use ockam_api::address::extract_address_value;
 use ockam_api::nodes::models::policy::Policy;
 use ockam_api::nodes::BackgroundNode;
 use ockam_core::api::Request;

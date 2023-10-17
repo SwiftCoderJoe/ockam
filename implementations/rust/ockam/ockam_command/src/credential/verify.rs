@@ -5,7 +5,6 @@ use crate::{
 };
 use miette::miette;
 
-use crate::credential::identities;
 use clap::Args;
 use colorful::Colorful;
 use ockam::identity::Identifier;
@@ -72,7 +71,7 @@ async fn run_impl(
 
         let issuer = cmd.issuer();
 
-        let identities = match identities(&vault_name, &opts).await {
+        let identities = match opts.state.get_identities_with_vault(&vault_name).await {
             Ok(i) => i,
             Err(_) => {
                 *is_finished.lock().await = true;

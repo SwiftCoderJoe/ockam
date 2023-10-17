@@ -149,7 +149,9 @@ pub async fn retrieve_user_project(
         ))?;
     info!("Retrieved the user default project {:?}", project);
 
-    let identifier = update_enrolled_identity(&opts.state, &node.node_name())
+    let identifier = node.identifier().await?;
+    opts.state
+        .set_identifier_as_enrolled(&identifier)
         .await
         .wrap_err(format!(
             "Unable to set the local identity as enrolled with project {}",

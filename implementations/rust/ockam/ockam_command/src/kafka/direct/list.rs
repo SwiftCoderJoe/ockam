@@ -9,7 +9,7 @@ use ockam_node::Context;
 
 use crate::node::NodeOpts;
 use crate::util::node_rpc;
-use crate::{fmt_err, CommandGlobalOpts};
+use crate::{docs, fmt_err, CommandGlobalOpts};
 
 const PREVIEW_TAG: &str = include_str!("../../static/preview_tag.txt");
 const AFTER_LONG_HELP: &str = include_str!("./static/list/after_long_help.txt");

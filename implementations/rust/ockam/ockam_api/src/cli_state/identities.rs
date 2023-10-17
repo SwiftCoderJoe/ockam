@@ -6,6 +6,24 @@ use crate::cli_state::{random_name, CliState, Result};
 use crate::identity::{NamedIdentity, NamedVault};
 
 impl CliState {
+    /// Create a node with an identity (possibly associated with a name) and an optionally specified vault
+    pub async fn create_node_with_optional_name_and_optional_vault(
+        &self,
+        node_name: &Option<String>,
+        identity_name: &Option<String>,
+        vault_name: &Option<String>,
+    ) -> Result<Identifier> {
+        let node_name = self.get_node_name_or_default(node_name).await?;
+        let vault_name = self.get_vault_name_or_default(vault_name).await?;
+        let identity_name = self.get_identity_name_or_default(identity_name).await?;
+        let identifier = self
+            .create_identity_with_name_and_vault(&identity_name, &vault_name)
+            .await?;
+        self.create_node_with_identifier(&node_name, &identifier)
+            .await?;
+        Ok(identifier)
+    }
+
     /// Create an identity associated with a name and a specific vault name
     pub async fn create_identity_with_name_and_vault(
         &self,

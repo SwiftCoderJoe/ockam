@@ -100,7 +100,7 @@ pub struct NodeManager {
 }
 
 impl NodeManager {
-    pub(super) async fn identifier(&self) -> Result<Identifier> {
+    pub async fn identifier(&self) -> Result<Identifier> {
         Ok(self
             .cli_state
             .get_node_identifier(self.node_name.as_str())

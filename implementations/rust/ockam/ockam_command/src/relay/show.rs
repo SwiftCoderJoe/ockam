@@ -7,7 +7,7 @@ use ockam_api::nodes::BackgroundNode;
 use ockam_core::api::Request;
 
 use crate::util::node_rpc;
-use crate::CommandGlobalOpts;
+use crate::{docs, CommandGlobalOpts};
 
 const PREVIEW_TAG: &str = include_str!("../static/preview_tag.txt");
 const AFTER_LONG_HELP: &str = include_str!("./static/show/after_long_help.txt");

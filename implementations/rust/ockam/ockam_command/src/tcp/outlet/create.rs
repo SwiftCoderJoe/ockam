@@ -8,7 +8,7 @@ use tokio::try_join;
 
 use ockam::Context;
 use ockam_abac::Resource;
-use ockam_api::address::extract_address_value;
+use ockam_api::nodes::extract_address_value;
 use ockam_api::nodes::models::portal::{CreateOutlet, OutletStatus};
 use ockam_api::nodes::BackgroundNode;
 use ockam_core::api::Request;
@@ -66,8 +66,7 @@ pub async fn run_impl(
     ))?;
     display_parse_logs(&opts);
 
-    let node_name = opts.state.get_node_name(&cmd.at).await?;
-    let node_name = extract_address_value(&node_name)?;
+    let node_name = opts.state.get_node_name_or_default(&cmd.at).await?;
     let project = opts.state.get_node_project(&node_name).await?;
     let resource = Resource::new("tcp-outlet");
     if let Some(p) = project {
@@ -79,12 +78,7 @@ pub async fn run_impl(
     let is_finished: Mutex<bool> = Mutex::new(false);
 
     let send_req = async {
-        let payload = CreateOutlet::new(
-            cmd.to,
-            extract_address_value(&cmd.from)?.into(),
-            cmd.alias,
-            true,
-        );
+        let payload = CreateOutlet::new(cmd.to, cmd.from.clone().into(), cmd.alias, true);
         let res = send_request(&ctx, &opts, payload, node_name.clone()).await;
         *is_finished.lock().await = true;
         res
@@ -100,9 +94,7 @@ pub async fn run_impl(
         "Setting up TCP outlet worker...".to_string(),
         format!(
             "Hosting outlet service at {}...",
-            &cmd.from
-                .to_string()
-                .color(OckamColor::PrimaryResource.color())
+            cmd.from.clone().color(OckamColor::PrimaryResource.color())
         ),
     ];
 

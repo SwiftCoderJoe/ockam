@@ -5,12 +5,69 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 
 use ockam::identity::Vault;
+use ockam_core::errcode::{Kind, Origin};
 use ockam_vault_aws::AwsSigningVault;
 
 use crate::cli_state::traits::StateItemTrait;
-use crate::cli_state::{CliStateError, StateDirTrait, DATA_DIR_NAME};
+use crate::cli_state::{CliStateError, StateDirTrait, DATA_DIR_NAME, CliState};
+use crate::identity::NamedVault;
 
 use super::Result;
+
+impl CliState {
+    /// Return the vault_name if Some otherwise return the default vault (if there is one)
+    pub async fn get_vault_name_or_default(&self, vault_name: &Option<String>) -> Result<String> {
+        match vault_name {
+            Some(name) => Ok(name.clone()),
+            None => self.get_default_vault_name().await,
+        }
+    }
+
+    pub async fn get_vault(&self, vault_name: &str) -> Result<NamedVault> {
+        let result = self
+            .vaults_repository()
+            .await?
+            .get_vault_by_name(vault_name)
+            .await?;
+        result.ok_or_else(|| {
+            ockam_core::Error::new(
+                Origin::Api,
+                Kind::NotFound,
+                format!("no vault found with name {vault_name}"),
+            )
+                .into()
+        })
+    }
+
+    pub async fn get_default_vault(&self) -> Result<NamedVault> {
+        let result = self.vaults_repository().await?.get_default_vault().await?;
+        result.ok_or_else(|| {
+            ockam_core::Error::new(
+                Origin::Api,
+                Kind::NotFound,
+                format!("no default vault found"),
+            )
+                .into()
+        })
+    }
+
+    pub async fn get_default_vault_name(&self) -> Result<String> {
+        let result = self
+            .vaults_repository()
+            .await?
+            .get_default_vault_name()
+            .await?;
+        result.ok_or_else(|| {
+            ockam_core::Error::new(
+                Origin::Api,
+                Kind::NotFound,
+                format!("no default vault found"),
+            )
+                .into()
+        })
+    }
+
+}
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct VaultsState {

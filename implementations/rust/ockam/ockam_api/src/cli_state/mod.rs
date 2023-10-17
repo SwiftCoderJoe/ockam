@@ -224,49 +224,11 @@ impl CliState {
             .build())
     }
 
-    pub async fn get_vault(&self, vault_name: &str) -> Result<NamedVault> {
-        let result = self
-            .vaults_repository()
-            .await?
-            .get_vault_by_name(vault_name)
-            .await?;
-        result.ok_or_else(|| {
-            ockam_core::Error::new(
-                Origin::Api,
-                Kind::NotFound,
-                format!("no vault found with name {vault_name}"),
-            )
-            .into()
-        })
+    pub async fn get_identities_with_vault(&self, vault_name: &str) -> Result<Arc<Identities>> {
+        let vault = self.get_vault(vault_name).await?;
+        self.get_identities(vault).await
     }
 
-    pub async fn get_default_vault(&self) -> Result<NamedVault> {
-        let result = self.vaults_repository().await?.get_default_vault().await?;
-        result.ok_or_else(|| {
-            ockam_core::Error::new(
-                Origin::Api,
-                Kind::NotFound,
-                format!("no default vault found"),
-            )
-            .into()
-        })
-    }
-
-    pub async fn get_default_vault_name(&self) -> Result<String> {
-        let result = self
-            .vaults_repository()
-            .await?
-            .get_default_vault_name()
-            .await?;
-        result.ok_or_else(|| {
-            ockam_core::Error::new(
-                Origin::Api,
-                Kind::NotFound,
-                format!("no default vault found"),
-            )
-            .into()
-        })
-    }
 
     /// fault identity but if it has not been initialized yet
     // /// then initialize it

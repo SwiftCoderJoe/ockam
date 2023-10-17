@@ -21,6 +21,13 @@ impl CliState {
             .await
     }
 
+    pub async fn set_identifier_as_enrolled(&self, identifier: &Identifier) -> Result<()> {
+        self.enrollment_repository()
+            .await?
+            .set_as_enrolled(identifier)
+            .await
+    }
+
     pub async fn get_identity_enrollments(
         &self,
         enrollment_status: EnrollmentStatus,
@@ -35,7 +42,7 @@ impl CliState {
 
 #[async_trait]
 pub trait EnrollmentsRepository: Send + Sync + 'static {
-    async fn enroll_identity(&self, identifier: &Identifier) -> Result<()>;
+    async fn set_as_enrolled(&self, identifier: &Identifier) -> Result<()>;
     async fn get_enrolled_identities(&self) -> Result<Vec<IdentityEnrollment>>;
     async fn get_all_identities_enrollments(&self) -> Result<Vec<IdentityEnrollment>>;
     async fn is_default_identity_enrolled(&self) -> Result<bool>;
@@ -58,7 +65,7 @@ impl EnrollmentsSqlxDatabase {
 
 #[async_trait]
 impl EnrollmentsRepository for EnrollmentsSqlxDatabase {
-    async fn enroll_identity(&self, identifier: &Identifier) -> Result<()> {
+    async fn set_as_enrolled(&self, identifier: &Identifier) -> Result<()> {
         let query = query("INSERT OR REPLACE INTO identity_enrollment VALUES (?, ?)")
             .bind(identifier.to_sql())
             .bind(OffsetDateTime::now_utc().to_sql());
@@ -192,7 +199,7 @@ mod tests {
         let repository = create_repository(db_file.path()).await?;
 
         // an identity can be enrolled
-        repository.enroll_identity(identity1.identifier()).await?;
+        repository.set_as_enrolled(identity1.identifier()).await?;
 
         // retrieve the identities and their enrollment status
         let result = repository.get_all_identities_enrollments().await?;

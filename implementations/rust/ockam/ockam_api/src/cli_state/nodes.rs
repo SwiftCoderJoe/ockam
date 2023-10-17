@@ -12,9 +12,18 @@ impl CliState {
     /// The vault used to create the identity is the default vault
     pub async fn create_node(&self, node_name: &str) -> Result<NodeInfo> {
         let identifier = self.create_identity_with_random_name().await?;
+        self.create_node_with_identifier(node_name, &identifier)
+            .await
+    }
+
+    pub async fn create_node_with_identifier(
+        &self,
+        node_name: &str,
+        identifier: &Identifier,
+    ) -> Result<NodeInfo> {
         let node_info = NodeInfo::new(
             node_name.to_string(),
-            identifier,
+            identifier.clone(),
             0,
             false,
             false,
@@ -130,7 +139,7 @@ impl CliState {
     }
 
     /// Return the node_name if Some otherwise return the default node name (if there is one)
-    pub async fn get_node_name(&self, node_name: &Option<String>) -> Result<String> {
+    pub async fn get_node_name_or_default(&self, node_name: &Option<String>) -> Result<String> {
         match node_name {
             Some(name) => Ok(name.clone()),
             None => self.get_default_node_name().await,

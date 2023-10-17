@@ -6,7 +6,7 @@ use ockam_core::Address;
 
 use crate::node::NodeOpts;
 use crate::util::{api, node_rpc};
-use crate::CommandGlobalOpts;
+use crate::{docs, CommandGlobalOpts};
 
 const LONG_ABOUT: &str = include_str!("./static/show/long_about.txt");
 const PREVIEW_TAG: &str = include_str!("../../static/preview_tag.txt");

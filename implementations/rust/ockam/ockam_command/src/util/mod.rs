@@ -1,7 +1,6 @@
 use std::{
     net::{SocketAddr, TcpListener},
     path::Path,
-    str::FromStr,
 };
 
 use miette::Context as _;
@@ -230,11 +229,10 @@ pub fn is_tty<S: io_lifetimes::AsFilelike>(s: S) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use ockam_api::address::extract_address_value;
     use ockam_api::cli_state;
     use ockam_api::cli_state::traits::StateDirTrait;
     use ockam_api::cli_state::VaultConfig;
-    use ockam_api::nodes::models::transport::{TransportMode, TransportType};
+    use std::str::FromStr;
 
     use super::*;
 

@@ -1,15 +1,16 @@
-use crate::credential::{identities, identity};
 use crate::{
     credential::validate_encoded_cred, fmt_log, fmt_ok, terminal::OckamColor, util::node_rpc,
     vault::default_vault_name, CommandGlobalOpts,
 };
 use clap::Args;
 use colorful::Colorful;
-use miette::miette;
+use miette::{miette, IntoDiagnostic};
+use ockam::identity::{Identities, Identity};
 use ockam::Context;
 use ockam_api::cli_state::random_name;
 use ockam_api::cli_state::{CredentialConfig, StateDirTrait};
 use std::path::PathBuf;
+use std::sync::Arc;
 use tokio::{sync::Mutex, try_join};
 
 #[derive(Clone, Debug, Args)]
@@ -67,7 +68,7 @@ async fn run_impl(
             .clone()
             .unwrap_or_else(|| default_vault_name(&opts.state));
 
-        let identities = match identities(&vault_name, &opts).await {
+        let identities = match opts.state.get_identities_with_vault(&vault_name).await {
             Ok(i) => i,
             Err(_) => {
                 *is_finished.lock().await = true;
@@ -127,4 +128,16 @@ async fn run_impl(
         .write_line()?;
 
     Ok(())
+}
+
+async fn identity(identity: &str, identities: Arc<Identities>) -> miette::Result<Identity> {
+    let identity_as_bytes = hex::decode(identity).into_diagnostic()?;
+
+    let identity = identities
+        .identities_creation()
+        .import(None, &identity_as_bytes)
+        .await
+        .into_diagnostic()?;
+
+    Ok(identity)
 }

@@ -17,7 +17,7 @@ use crate::output::Output;
 use crate::terminal::OckamColor;
 use crate::util::api;
 use crate::util::node_rpc;
-use crate::CommandGlobalOpts;
+use crate::{docs, CommandGlobalOpts};
 
 const LONG_ABOUT: &str = include_str!("./static/list/long_about.txt");
 const PREVIEW_TAG: &str = include_str!("../../static/preview_tag.txt");

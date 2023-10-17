@@ -81,11 +81,15 @@ pub struct NodeOpts {
 
 /// If the required node name is the default node but that node has not been initialized yet
 /// then initialize it
-pub async fn initialize_node_if_default(opts: &CommandGlobalOpts, node_name: &Option<String>) {
-    let node_name = opts.state.get_node_name(node_name).await?;
+pub async fn initialize_node_if_default(
+    opts: &CommandGlobalOpts,
+    node_name: &Option<String>,
+) -> miette::Result<()> {
+    let node_name = opts.state.get_node_name_or_default(node_name).await?;
     if node_name == "default" && opts.state.get_default_node().await.is_err() {
         spawn_default_node(opts)
-    }
+    };
+    Ok(())
 }
 
 /// Start the default node

@@ -41,7 +41,7 @@ impl DeleteCommand {
 }
 
 async fn run_impl(
-    ctx: Context,
+    _ctx: Context,
     (opts, cmd): (CommandGlobalOpts, DeleteCommand),
 ) -> miette::Result<()> {
     let prompt_msg = if cmd.all {
@@ -60,7 +60,7 @@ async fn run_impl(
                 .plain(fmt_ok!("All nodes have been deleted"))
                 .write_line()?;
         } else {
-            let node_name = opts.state.get_node_name(&cmd.node_name).await?;
+            let node_name = opts.state.get_node_name_or_default(&cmd.node_name).await?;
             opts.state
                 .delete_node_sigkill(&node_name, cmd.force)
                 .await?;

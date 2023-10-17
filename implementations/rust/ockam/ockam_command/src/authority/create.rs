@@ -108,14 +108,13 @@ async fn spawn_background_node(
     opts: &CommandGlobalOpts,
     cmd: &CreateCommand,
 ) -> miette::Result<()> {
-    // Create node state, including the vault and identity if they don't exist
-    init_node_state(
-        &opts.state,
-        &cmd.node_name,
-        cmd.vault.as_deref(),
-        cmd.identity.as_deref(),
-    )
-    .await?;
+    opts.state
+        .create_node_with_optional_name_and_optional_vault(
+            &Some(cmd.node_name.clone()),
+            &cmd.identity,
+            &cmd.vault,
+        )
+        .await?;
 
     // Construct the arguments list and re-execute the ockam
     // CLI in foreground mode to start the newly created node
