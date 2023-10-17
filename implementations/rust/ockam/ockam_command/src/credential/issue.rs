@@ -5,7 +5,6 @@ use ockam::identity::utils::AttributesBuilder;
 use ockam::identity::Identifier;
 use ockam::identity::{MAX_CREDENTIAL_VALIDITY, PROJECT_MEMBER_SCHEMA, TRUST_CONTEXT_ID};
 use ockam::Context;
-use ockam_api::cli_state::traits::StateDirTrait;
 use ockam_core::compat::collections::HashMap;
 
 use crate::output::{CredentialAndPurposeKeyDisplay, EncodeFormat};

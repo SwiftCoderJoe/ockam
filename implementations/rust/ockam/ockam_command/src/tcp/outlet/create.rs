@@ -13,7 +13,6 @@ use ockam_api::nodes::models::portal::{CreateOutlet, OutletStatus};
 use ockam_api::nodes::BackgroundNode;
 use ockam_core::api::Request;
 
-use crate::node::{get_node_name, initialize_node_if_default};
 use crate::policy::{add_default_project_policy, has_policy};
 use crate::tcp::util::alias_parser;
 use crate::terminal::OckamColor;
@@ -47,7 +46,6 @@ pub struct CreateCommand {
 
 impl CreateCommand {
     pub fn run(self, opts: CommandGlobalOpts) {
-        initialize_node_if_default(&opts, &self.at);
         node_rpc(run_impl, (opts, self))
     }
 }
@@ -68,7 +66,7 @@ pub async fn run_impl(
     ))?;
     display_parse_logs(&opts);
 
-    let node_name = get_node_name(&opts.state, &cmd.at).await;
+    let node_name = opts.state.get_node_name(&cmd.at).await?;
     let node_name = extract_address_value(&node_name)?;
     let project = opts.state.get_node_project(&node_name).await?;
     let resource = Resource::new("tcp-outlet");
@@ -142,8 +140,7 @@ pub async fn send_request(
     payload: CreateOutlet,
     to_node: impl Into<Option<String>>,
 ) -> crate::Result<OutletStatus> {
-    let node_name = get_node_name(&opts.state, &to_node.into()).await;
-    let node = BackgroundNode::create(ctx, &opts.state, &node_name).await?;
+    let node = BackgroundNode::create(ctx, &opts.state, &to_node.into()).await?;
     let req = Request::post("/node/outlet").body(payload);
     Ok(node.ask(ctx, req).await?)
 }

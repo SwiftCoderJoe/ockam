@@ -2,10 +2,6 @@ use crate::util::node_rpc;
 use crate::{docs, fmt_ok, CommandGlobalOpts};
 use clap::Args;
 use colorful::Colorful;
-use miette::IntoDiagnostic;
-use std::str::FromStr;
-
-use ockam::identity::Identifier;
 use ockam::Context;
 
 const LONG_ABOUT: &str = include_str!("./static/delete/long_about.txt");

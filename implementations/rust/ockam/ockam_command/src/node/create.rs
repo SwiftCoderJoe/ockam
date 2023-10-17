@@ -19,7 +19,6 @@ use ockam_api::nodes::BackgroundNode;
 use ockam_api::nodes::InMemoryNode;
 use ockam_api::{
     bootstrapped_identities_store::PreTrustedIdentities,
-    nodes::models::transport::{TransportMode, TransportType},
     nodes::{
         service::{NodeManagerGeneralOptions, NodeManagerTransportOptions},
         NodeManagerWorker, NODEMANAGER_ADDR,
@@ -32,8 +31,8 @@ use crate::node::util::{spawn_node, NodeManagerDefaults};
 use crate::secure_channel::listener::create as secure_channel_listener;
 use crate::service::config::Config;
 use crate::terminal::OckamColor;
+use crate::util::api;
 use crate::util::api::TrustContextOpts;
-use crate::util::{api, parse_node_name};
 use crate::util::{embedded_node_that_is_not_stopped, exitcode};
 use crate::util::{local_cmd, node_rpc};
 use crate::{docs, shutdown, CommandGlobalOpts, Result};
@@ -173,8 +172,7 @@ pub(crate) async fn background_mode(
     ctx: Context,
     (opts, cmd): (CommandGlobalOpts, CreateCommand),
 ) -> miette::Result<()> {
-    let node_name = &parse_node_name(&cmd.node_name)?;
-
+    let node_name = cmd.node_name;
     if opts.state.is_node_running(&node_name).await? {
         eprintln!("{:?}", miette!("Node {} is already running", &node_name));
         std::process::exit(exitcode::SOFTWARE);
@@ -182,9 +180,7 @@ pub(crate) async fn background_mode(
 
     opts.terminal.write_line(&fmt_log!(
         "Creating Node {}...\n",
-        node_name
-            .to_string()
-            .color(OckamColor::PrimaryResource.color())
+        node_name.clone().color(OckamColor::PrimaryResource.color())
     ))?;
 
     if cmd.child_process {
@@ -194,11 +190,11 @@ pub(crate) async fn background_mode(
     }
 
     let is_finished: Mutex<bool> = Mutex::new(false);
+    let mut node = BackgroundNode::create(&ctx, &opts.state, &Some(node_name.clone())).await?;
 
     let send_req = async {
-        let mut node = BackgroundNode::create(&ctx, &opts.state, node_name).await?;
         spawn_background_node(&opts, cmd.clone()).await?;
-        let is_node_up = is_node_up(&ctx, node_name, &mut node, opts.state.clone(), true).await?;
+        let is_node_up = is_node_up(&ctx, &mut node, opts.state.clone(), true).await?;
         *is_finished.lock().await = true;
         Ok(is_node_up)
     };
@@ -221,9 +217,7 @@ pub(crate) async fn background_mode(
         .plain(
             fmt_ok!(
                 "Node {} created successfully\n\n",
-                node_name
-                    .to_string()
-                    .color(OckamColor::PrimaryResource.color())
+                node.node_name().color(OckamColor::PrimaryResource.color())
             ) + &fmt_log!("To see more details on this node, run:\n")
                 + &fmt_log!(
                     "{}",
@@ -245,10 +239,9 @@ async fn run_foreground_node(
     ctx: Context,
     (opts, cmd): (CommandGlobalOpts, CreateCommand),
 ) -> miette::Result<()> {
-    let node_name = parse_node_name(&cmd.node_name)?;
-
     // This node was initially created as a foreground node
     // and there is no existing state for it yet.
+    let node_name = cmd.node_name;
     if !cmd.child_process && !opts.state.get_node(&node_name).await.is_ok() {
         init_node_state(
             &opts.state,

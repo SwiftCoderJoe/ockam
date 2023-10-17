@@ -28,10 +28,6 @@ impl Default for NodeManagerDefaults {
     }
 }
 
-pub async fn delete_node(opts: &CommandGlobalOpts, name: &str, force: bool) -> miette::Result<()> {
-    Ok(opts.state.delete_node_sigkill(name, force).await?)
-}
-
 pub async fn delete_all_nodes(opts: &CommandGlobalOpts, force: bool) -> miette::Result<()> {
     let node_infos = opts.state.get_nodes().await?;
     let mut deletion_errors = Vec::new();
@@ -51,10 +47,6 @@ pub async fn delete_all_nodes(opts: &CommandGlobalOpts, force: bool) -> miette::
         ));
     }
     Ok(())
-}
-
-pub async fn check_default(opts: &CommandGlobalOpts, name: &str) -> miette::Result<bool> {
-    Ok(opts.state.get_node(name).await?.is_default())
 }
 
 /// A utility function to spawn a new node into foreground mode
@@ -165,7 +157,6 @@ pub async fn run_ockam(
     // deterministic way of starting a node.
     let ockam_exe = get_env_with_default("OCKAM", current_exe().unwrap_or_else(|_| "ockam".into()))
         .into_diagnostic()?;
-    let node_info = opts.state.get_node(node_name).await?;
 
     let mut cmd = Command::new(ockam_exe);
 
@@ -173,7 +164,7 @@ pub async fn run_ockam(
         let (mlog, elog) = {
             (
                 opts.state.stdout_logs(node_name),
-                node_info.stderr_logs(node_name),
+                opts.state.stderr_logs(node_name),
             )
         };
         let main_log_file = OpenOptions::new()

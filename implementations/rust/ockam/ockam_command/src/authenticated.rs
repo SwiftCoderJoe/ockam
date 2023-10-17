@@ -1,19 +1,19 @@
-use crate::node::get_node_name;
-use crate::util::node_rpc;
-use crate::util::parsers::identity_identifier_parser;
-use crate::Result;
-use crate::{docs, CommandGlobalOpts};
 use clap::{Args, Subcommand};
 use miette::Context as _;
+use termimad::{minimad::TextTemplate, MadSkin};
+
 use ockam::compat::collections::HashMap;
 use ockam::identity::{AttributesEntry, Identifier};
 use ockam::Context;
-use ockam_api::address::extract_address_value;
 use ockam_api::auth::AuthorizationApi;
 use ockam_api::is_local_node;
 use ockam_api::nodes::BackgroundNode;
 use ockam_multiaddr::MultiAddr;
-use termimad::{minimad::TextTemplate, MadSkin};
+
+use crate::util::node_rpc;
+use crate::util::parsers::identity_identifier_parser;
+use crate::Result;
+use crate::{docs, CommandGlobalOpts};
 
 const HELP_DETAIL: &str = "";
 
@@ -90,9 +90,7 @@ async fn make_background_node_client(
     addr: &MultiAddr,
 ) -> Result<BackgroundNode> {
     is_local_node(addr).context("The address must point to a local node")?;
-    let to = get_node_name(&opts.state, &Some(addr.to_string())).await;
-    let node_name = extract_address_value(&to)?;
-    Ok(BackgroundNode::create(ctx, &opts.state, &node_name).await?)
+    Ok(BackgroundNode::create(ctx, &opts.state, &Some(addr.to_string())).await?)
 }
 
 fn print_entries(entries: &[(Identifier, AttributesEntry)]) {

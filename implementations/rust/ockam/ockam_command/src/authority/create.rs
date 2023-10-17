@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use std::process;
 
 use clap::{ArgGroup, Args};
-use miette::Context as _;
 use miette::{miette, IntoDiagnostic};
 use serde::{Deserialize, Serialize};
 use tracing::debug;
@@ -14,7 +13,6 @@ use ockam_api::authority_node;
 use ockam_api::authority_node::{OktaConfiguration, TrustedIdentity};
 use ockam_api::bootstrapped_identities_store::PreTrustedIdentities;
 use ockam_api::cli_state::traits::StateDirTrait;
-use ockam_api::nodes::models::transport::{TransportMode, TransportType};
 use ockam_api::DefaultAddress;
 use ockam_core::compat::collections::HashMap;
 use ockam_core::compat::fmt;

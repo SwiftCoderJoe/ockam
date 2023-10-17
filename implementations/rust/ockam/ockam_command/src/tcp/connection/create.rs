@@ -3,12 +3,10 @@ use colorful::Colorful;
 use miette::IntoDiagnostic;
 use serde_json::json;
 
-use ockam_api::address::extract_address_value;
 use ockam_api::nodes::models::transport::TransportStatus;
 use ockam_api::nodes::BackgroundNode;
 use ockam_node::Context;
 
-use crate::node::{get_node_name, initialize_node_if_default};
 use crate::util::is_tty;
 use crate::{
     docs,
@@ -55,7 +53,7 @@ impl CreateCommand {
                     println!("{}", response.multiaddr().into_diagnostic()?);
                     return Ok(());
                 }
-                let from = get_node_name(&opts.state, &self.node_opts.from).await;
+                let from = opts.state.get_node_name(&self.node_opts.from).await?;
                 let to = response.socket_addr().into_diagnostic()?;
                 if opts.global_args.no_color {
                     println!("\n  TCP Connection:");
@@ -90,9 +88,7 @@ async fn run_impl(
     ctx: Context,
     (opts, cmd): (CommandGlobalOpts, CreateCommand),
 ) -> miette::Result<()> {
-    let from = get_node_name(&opts.state, &cmd.node_opts.from).await;
-    let node_name = extract_address_value(&from)?;
-    let node = BackgroundNode::create(&ctx, &opts.state, &node_name).await?;
+    let node = BackgroundNode::create(&ctx, &opts.state, &cmd.node_opts.from).await?;
     let request = api::create_tcp_connection(&cmd);
     let transport_status: TransportStatus = node.ask(&ctx, request).await?;
     cmd.print_output(&opts, &transport_status).await

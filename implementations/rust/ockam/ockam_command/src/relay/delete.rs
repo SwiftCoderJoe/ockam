@@ -5,8 +5,7 @@ use ockam::Context;
 use ockam_api::nodes::BackgroundNode;
 use ockam_core::api::Request;
 
-use crate::node::get_node_name;
-use crate::util::{node_rpc, parse_node_name};
+use crate::util::{node_rpc};
 use crate::{docs, fmt_ok, CommandGlobalOpts};
 
 const AFTER_LONG_HELP: &str = include_str!("./static/delete/after_long_help.txt");
@@ -45,10 +44,8 @@ pub async fn run_impl(
         .terminal
         .confirmed_with_flag_or_prompt(cmd.yes, "Are you sure you want to delete this relay?")?
     {
+        let node = BackgroundNode::create(&ctx, &opts.state, &cmd.at).await?;
         let relay_name = cmd.relay_name.clone();
-        let at = get_node_name(&opts.state, &cmd.at).await;
-        let node_name = parse_node_name(&at)?;
-        let node = BackgroundNode::create(&ctx, &opts.state, &node_name).await?;
         node.tell(
             &ctx,
             Request::delete(format!("/node/forwarder/{relay_name}",)),
@@ -60,11 +57,11 @@ pub async fn run_impl(
             .plain(fmt_ok!(
                 "Relay with name {} on Node {} has been deleted.",
                 relay_name,
-                node_name
+                node.node_name()
             ))
             .machine(&relay_name)
             .json(serde_json::json!({ "relay": { "name": relay_name,
-                "node": node_name } }))
+                "node": node.node_name() } }))
             .write_line()
             .unwrap();
     }

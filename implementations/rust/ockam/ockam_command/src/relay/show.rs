@@ -2,14 +2,12 @@ use clap::Args;
 use miette::IntoDiagnostic;
 
 use ockam::Context;
-use ockam_api::address::extract_address_value;
 use ockam_api::nodes::models::relay::RelayInfo;
 use ockam_api::nodes::BackgroundNode;
 use ockam_core::api::Request;
 
-use crate::node::get_node_name;
 use crate::util::node_rpc;
-use crate::{docs, CommandGlobalOpts};
+use crate::CommandGlobalOpts;
 
 const PREVIEW_TAG: &str = include_str!("../static/preview_tag.txt");
 const AFTER_LONG_HELP: &str = include_str!("./static/show/after_long_help.txt");
@@ -17,9 +15,9 @@ const AFTER_LONG_HELP: &str = include_str!("./static/show/after_long_help.txt");
 /// Show a Relay by its alias
 #[derive(Clone, Debug, Args)]
 #[command(
-    arg_required_else_help = false,
-    before_help = docs::before_help(PREVIEW_TAG),
-    after_long_help = docs::after_help(AFTER_LONG_HELP)
+arg_required_else_help = false,
+before_help = docs::before_help(PREVIEW_TAG),
+after_long_help = docs::after_help(AFTER_LONG_HELP)
 )]
 pub struct ShowCommand {
     /// Name assigned to relay that will be shown (prefixed with forward_to_<name>)
@@ -41,10 +39,8 @@ async fn run_impl(
     ctx: Context,
     (opts, cmd): (CommandGlobalOpts, ShowCommand),
 ) -> miette::Result<()> {
-    let at = get_node_name(&opts.state, &cmd.at).await;
-    let node_name = extract_address_value(&at)?;
+    let node = BackgroundNode::create(&ctx, &opts.state, &cmd.at).await?;
     let remote_address = &cmd.remote_address;
-    let node = BackgroundNode::create(&ctx, &opts.state, &node_name).await?;
     let relay_info: RelayInfo = node
         .ask(
             &ctx,

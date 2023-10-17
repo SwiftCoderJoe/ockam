@@ -2,7 +2,6 @@ use clap::Args;
 
 use ockam_node::Context;
 
-use crate::node::get_node_name;
 use crate::util::node_rpc;
 use crate::{docs, CommandGlobalOpts};
 
@@ -36,7 +35,7 @@ async fn run_impl(
     _ctx: Context,
     (opts, cmd): (CommandGlobalOpts, LogCommand),
 ) -> miette::Result<()> {
-    let node_name = get_node_name(&opts.state, &cmd.node_name).await;
+    let node_name = opts.state.get_node_name(&cmd.node_name).await?;
     let log_file_path = if cmd.show_err {
         opts.state.node_stderr_log(&node_name)?
     } else {

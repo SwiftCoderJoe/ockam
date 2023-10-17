@@ -50,7 +50,9 @@ impl CreateServiceInvitation {
         service_route: S,
         enrollment_ticket: EnrollmentTicket,
     ) -> Result<Self> {
-        let node_identifier = cli_state.get_node_identifier(node_name.as_ref()).await?;
+        let node_identifier = cli_state
+            .get_node_identifier(node_name.as_ref())
+            .await?;
         let project = cli_state.projects.get(&project_name)?.config().clone();
         let project_authority_route = project
             .authority_access_route

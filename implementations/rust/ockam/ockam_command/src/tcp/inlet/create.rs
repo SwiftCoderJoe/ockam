@@ -22,15 +22,12 @@ use ockam_core::{route, Error};
 use ockam_multiaddr::proto::Project;
 use ockam_multiaddr::{MultiAddr, Protocol as _};
 
-use crate::node::{get_node_name, initialize_node_if_default};
 use crate::policy::{add_default_project_policy, has_policy};
 use crate::tcp::util::alias_parser;
 use crate::terminal::OckamColor;
 use crate::util::duration::duration_parser;
 use crate::util::parsers::socket_addr_parser;
-use crate::util::{
-    find_available_port, node_rpc, parse_node_name, port_is_free_guard, process_nodes_multiaddr,
-};
+use crate::util::{find_available_port, node_rpc, port_is_free_guard, process_nodes_multiaddr};
 use crate::{display_parse_logs, docs, fmt_log, fmt_ok, CommandGlobalOpts};
 
 const AFTER_LONG_HELP: &str = include_str!("./static/create/after_long_help.txt");
@@ -80,7 +77,6 @@ fn default_to_addr() -> MultiAddr {
 
 impl CreateCommand {
     pub fn run(self, opts: CommandGlobalOpts) {
-        initialize_node_if_default(&opts, &self.at);
         node_rpc(rpc, (opts, self));
     }
 }
@@ -99,20 +95,17 @@ async fn rpc(
 
     cmd.to = process_nodes_multiaddr(&cmd.to, &opts.state).await?;
 
-    let node_name = get_node_name(&opts.state, &cmd.at).await;
-    let node_name = parse_node_name(&node_name)?;
-
-    let node = BackgroundNode::create(&ctx, &opts.state, &node_name).await?;
+    let node = BackgroundNode::create(&ctx, &opts.state, &cmd.at).await?;
     let is_finished: Mutex<bool> = Mutex::new(false);
     let progress_bar = opts.terminal.progress_spinner();
     let create_inlet = async {
         port_is_free_guard(&cmd.from)?;
 
-        let project = opts.state.get_node_project(&node_name).await?;
+        let project = opts.state.get_node_project(&node.node_name()).await?;
         let resource = Resource::new("tcp-inlet");
         if let Some(p) = project {
-            if !has_policy(&node_name, &ctx, &opts, &resource).await? {
-                add_default_project_policy(&node_name, &ctx, &opts, p.id, &resource).await?;
+            if !has_policy(&node.node_name(), &ctx, &opts, &resource).await? {
+                add_default_project_policy(&node.node_name(), &ctx, &opts, p.id, &resource).await?;
             }
         }
 
@@ -193,9 +186,7 @@ async fn rpc(
     let progress_messages = vec![
         format!(
             "Creating TCP Inlet on {}...",
-            &node_name
-                .to_string()
-                .color(OckamColor::PrimaryResource.color())
+            &node.node_name().color(OckamColor::PrimaryResource.color())
         ),
         format!(
             "Hosting TCP Socket at {}...",
@@ -230,9 +221,7 @@ async fn rpc(
                 &cmd.from
                     .to_string()
                     .color(OckamColor::PrimaryResource.color()),
-                &node_name
-                    .to_string()
-                    .color(OckamColor::PrimaryResource.color())
+                &node.node_name().color(OckamColor::PrimaryResource.color())
             ) + &fmt_log!(
                 "to the outlet at {}",
                 &cmd.to

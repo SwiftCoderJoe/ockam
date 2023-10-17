@@ -1,3 +1,23 @@
+use std::sync::Arc;
+
+use clap::{Args, Subcommand};
+use colorful::Colorful;
+use miette::IntoDiagnostic;
+
+pub(crate) use get::GetCommand;
+pub(crate) use issue::IssueCommand;
+pub(crate) use list::ListCommand;
+use ockam::identity::models::CredentialAndPurposeKey;
+use ockam::identity::{Identifier, Identities, Identity};
+use ockam_api::cli_state::{CredentialState, StateItemTrait};
+pub(crate) use present::PresentCommand;
+pub(crate) use show::ShowCommand;
+pub(crate) use store::StoreCommand;
+pub(crate) use verify::VerifyCommand;
+
+use crate::output::{CredentialAndPurposeKeyDisplay, Output};
+use crate::{CommandGlobalOpts, Result};
+
 pub(crate) mod get;
 pub(crate) mod issue;
 pub(crate) mod list;
@@ -5,25 +25,6 @@ pub(crate) mod present;
 pub(crate) mod show;
 pub(crate) mod store;
 pub(crate) mod verify;
-
-use colorful::Colorful;
-pub(crate) use get::GetCommand;
-pub(crate) use issue::IssueCommand;
-pub(crate) use list::ListCommand;
-use ockam::identity::{Identifier, Identities, Identity};
-use ockam_api::cli_state::{CredentialState, StateItemTrait};
-pub(crate) use present::PresentCommand;
-pub(crate) use show::ShowCommand;
-use std::sync::Arc;
-pub(crate) use store::StoreCommand;
-pub(crate) use verify::VerifyCommand;
-
-use crate::output::{CredentialAndPurposeKeyDisplay, Output};
-use crate::{CommandGlobalOpts, Result};
-use clap::{Args, Subcommand};
-use miette::IntoDiagnostic;
-use ockam::identity::models::CredentialAndPurposeKey;
-use ockam_api::cli_state::traits::StateDirTrait;
 
 /// Manage Credentials
 #[derive(Clone, Debug, Args)]
@@ -60,7 +61,7 @@ impl CredentialCommand {
 }
 
 pub async fn identities(vault_name: &str, opts: &CommandGlobalOpts) -> Result<Arc<Identities>> {
-    let vault = opts.state.get_vault(vault_name)?.get().await?;
+    let vault = opts.state.get_vault(vault_name).await?.get().await?;
     let identities = opts.state.get_identities(vault).await?;
 
     Ok(identities)

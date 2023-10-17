@@ -10,7 +10,7 @@ use ockam_api::port_range::PortRange;
 use ockam_core::api::Request;
 use ockam_multiaddr::MultiAddr;
 
-use crate::node::{get_node_name, NodeOpts};
+use crate::node::NodeOpts;
 use crate::service::start::start_service_impl;
 use crate::terminal::OckamColor;
 use crate::util::process_nodes_multiaddr;
@@ -46,8 +46,7 @@ pub async fn rpc(ctx: Context, (opts, args): (CommandGlobalOpts, ArgOpts)) -> mi
 
     let is_finished = Mutex::new(false);
     let send_req = async {
-        let node_name = get_node_name(&opts.state, &node_opts.at_node).await;
-        let node = BackgroundNode::create(&ctx, &opts.state, &node_name).await?;
+        let node = BackgroundNode::create(&ctx, &opts.state, &node_opts.at_node).await?;
 
         let payload = StartKafkaProducerRequest::new(
             bootstrap_server.to_owned(),

@@ -1,28 +1,15 @@
 use std::path::PathBuf;
 
 use ockam::identity::{Identifier, Vault};
+use ockam_core::errcode::{Kind, Origin};
 
 use crate::cli_state::CliState;
 use crate::cli_state::{ProjectConfig, Result};
 use crate::nodes::NodeInfo;
 
 impl CliState {
-    pub async fn get_nodes(&self) -> Result<Vec<NodeInfo>> {
-        Ok(self.nodes_repository().await?.get_nodes().await?)
-    }
-
-    pub async fn get_node_vault(&self, node_name: &str) -> Result<Vault> {
-        todo!("get_node_vault")
-    }
-
-    pub async fn get_node_identifier(&self, node_name: &str) -> Result<Identifier> {
-        todo!("implement get_node_identifier")
-    }
-
-    pub async fn get_node_identifier_name(&self, node_name: &str) -> Result<Option<String>> {
-        todo!("implement get_node_identifier_name")
-    }
-
+    /// This method creates a node with an associated identity
+    /// The vault used to create the identity is the default vault
     pub async fn create_node(&self, node_name: &str) -> Result<NodeInfo> {
         let identifier = self.create_identity_with_random_name().await?;
         let node_info = NodeInfo::new(
@@ -42,14 +29,130 @@ impl CliState {
     }
 
     pub async fn get_node(&self, node_name: &str) -> Result<NodeInfo> {
-        todo!("get_node_by_name")
+        if let Some(node) = self.nodes_repository().await?.get_node(node_name).await? {
+            Ok(node)
+        } else {
+            Err(ockam_core::Error::new(
+                Origin::Api,
+                Kind::NotFound,
+                format!("There is no node with name {node_name}"),
+            )
+            .into())
+        }
     }
 
+    /// Return all the registered nodes
+    pub async fn get_nodes(&self) -> Result<Vec<NodeInfo>> {
+        Ok(self.nodes_repository().await?.get_nodes().await?)
+    }
+
+    /// Return the identifier associated to a node
+    pub async fn get_node_identifier(&self, node_name: &str) -> Result<Identifier> {
+        Ok(self.get_node(node_name).await?.identifier())
+    }
+
+    /// Return true if that node is the default one
+    pub async fn is_default_node(&self, node_name: &str) -> Result<bool> {
+        Ok(self.get_node(node_name).await?.is_default())
+    }
+
+    /// Return true if that node is currently running
     pub async fn is_node_running(&self, node_name: &str) -> Result<bool> {
-        todo!("is_node_running")
+        Ok(self.get_node(node_name).await?.is_running())
+    }
+
+    /// Return the name of the identifier associated to a node
+    pub async fn get_node_identifier_name(&self, node_name: &str) -> Result<Option<String>> {
+        let identifier = self.get_node_identifier(node_name).await?;
+        Ok(self
+            .identities_repository()
+            .await?
+            .get_identity_name_by_identifier(&identifier)
+            .await?)
+    }
+
+    /// Return information about the default node (if there is one)
+    pub async fn get_default_node(&self) -> Result<NodeInfo> {
+        if let Some(node) = self.nodes_repository().await?.get_default_node().await? {
+            Ok(node)
+        } else {
+            Err(
+                ockam_core::Error::new(Origin::Api, Kind::NotFound, "There is no default node")
+                    .into(),
+            )
+        }
+    }
+
+    /// Delete a registered node. If the node is the default one pick another node to be the default one
+    async fn delete_node(&self, node_name: &str) -> Result<()> {
+        Ok(self
+            .nodes_repository()
+            .await?
+            .delete_node(node_name)
+            .await?)
+    }
+
+    /// Delete the default node if there is one
+    pub async fn delete_default_node(&self) -> Result<()> {
+        Ok(self.nodes_repository().await?.delete_default_node().await?)
+    }
+
+    pub async fn set_default_node(&self, node_name: &str) -> Result<()> {
+        Ok(self
+            .nodes_repository()
+            .await?
+            .set_default_node(node_name)
+            .await?)
+    }
+
+    pub async fn set_tcp_listener_address(&self, node_name: &str, address: String) -> Result<()> {
+        Ok(self
+            .nodes_repository()
+            .await?
+            .set_tcp_listener_address(node_name, address.as_str())
+            .await?)
+    }
+
+    pub async fn set_node_pid(&self, node_name: &str, pid: u32) -> Result<()> {
+        Ok(self
+            .nodes_repository()
+            .await?
+            .set_node_pid(node_name, pid)
+            .await?)
+    }
+
+    pub async fn is_node_api_transport_set(&self, node_name: &str) -> Result<bool> {
+        Ok(self
+            .get_node(node_name)
+            .await?
+            .tcp_listener_address()
+            .is_some())
+    }
+
+    /// Return the node_name if Some otherwise return the default node name (if there is one)
+    pub async fn get_node_name(&self, node_name: &Option<String>) -> Result<String> {
+        match node_name {
+            Some(name) => Ok(name.clone()),
+            None => self.get_default_node_name().await,
+        }
+    }
+
+    /// Return the default node name.
+    /// If there is no existing default node, return a constant name to use as the default
+    pub async fn get_default_node_name(&self) -> Result<String> {
+        self.get_default_node().await.map(|n| n.name())
+    }
+
+    /// Return the vault which was used to create the identity associated to a node
+    pub async fn get_node_vault(&self, node_name: &str) -> Result<Vault> {
+        todo!("get_node_vault")
     }
 
     pub fn stdout_logs(&self, node_name: &str) -> PathBuf {
+        todo!("stdout_logs")
+    }
+
+    pub fn stderr_logs(&self, node_name: &str) -> PathBuf {
         todo!("stdout_logs")
     }
 
@@ -63,38 +166,6 @@ impl CliState {
 
     pub async fn delete_node_sigkill(&self, node_name: &str, force: bool) -> Result<()> {
         todo!("delete_sigkill")
-    }
-
-    pub async fn delete_node(&self, node_name: &str) -> Result<()> {
-        todo!("get_node_by_name")
-    }
-
-    pub async fn delete_default_node(&self) -> Result<()> {
-        todo!("get_node_by_name")
-    }
-
-    pub async fn get_default_node(&self) -> Result<NodeInfo> {
-        todo!("get_default_node")
-    }
-
-    pub async fn is_default_node(&self, name: &str) -> Result<bool> {
-        todo!("is_default_node")
-    }
-
-    pub async fn set_default_node(&self, name: &str) -> Result<bool> {
-        todo!("set_default_node")
-    }
-
-    pub async fn set_tcp_listener_address(&self, node_name: &str, address: String) -> Result<()> {
-        todo!("set_node_transport")
-    }
-
-    pub async fn set_node_pid(&self, node_name: &str, pid: u32) -> Result<()> {
-        todo!("set_node_pid")
-    }
-
-    pub async fn is_node_api_transport_set(&self, node_name: &str) -> Result<bool> {
-        todo!("is_node_api_transport_set")
     }
 }
 

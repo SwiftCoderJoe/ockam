@@ -32,7 +32,7 @@ impl IdentitiesSqlxDatabase {
 #[async_trait]
 impl IdentitiesRepository for IdentitiesSqlxDatabase {
     async fn name_identity(&self, identifier: &Identifier, name: &str) -> Result<()> {
-        let query = query("INSERT OR REPLACE INTO named_identity values (?, ?, ?)")
+        let query = query("INSERT OR REPLACE INTO named_identity VALUES (?, ?, ?)")
             .bind(identifier.to_sql())
             .bind(name.to_sql())
             .bind(false.to_sql());
@@ -41,7 +41,7 @@ impl IdentitiesRepository for IdentitiesSqlxDatabase {
 
     async fn delete_identity_by_name(&self, name: &str) -> Result<Option<Identifier>> {
         let identifier = self.get_identifier_by_name(name).await?;
-        let query = query("DELETE FROM named_identity where name=?").bind(name.to_sql());
+        let query = query("DELETE FROM named_identity WHERE name=?").bind(name.to_sql());
         query.execute(&self.database.pool).await.void()?;
         Ok(identifier)
     }

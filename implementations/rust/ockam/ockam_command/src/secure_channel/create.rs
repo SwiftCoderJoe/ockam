@@ -6,7 +6,6 @@ use tokio::{sync::Mutex, try_join};
 
 use ockam::identity::DEFAULT_TIMEOUT;
 use ockam::{identity::Identifier, route, Context};
-use ockam_api::address::extract_address_value;
 use ockam_api::nodes::models::secure_channel::{
     CreateSecureChannelRequest, CreateSecureChannelResponse,
 };
@@ -95,22 +94,16 @@ impl CreateCommand {
             .into_diagnostic()
             .wrap_err("Could not parse projects from route")
     }
-
-    // Read the `from` argument and return node name
-    fn parse_from_node(&self) -> miette::Result<String> {
-        extract_address_value(&self.from).into_diagnostic()
-    }
 }
 
 async fn rpc(ctx: Context, (opts, cmd): (CommandGlobalOpts, CreateCommand)) -> miette::Result<()> {
+    let node = BackgroundNode::create(&ctx, &opts.state, &Some(cmd.from.clone())).await?;
+
     opts.terminal
         .write_line(&fmt_log!("Creating Secure Channel...\n"))?;
 
     // Delegate the request to create a secure channel to the from node.
     let is_finished: Mutex<bool> = Mutex::new(false);
-
-    let from = cmd.parse_from_node()?;
-    let node = BackgroundNode::create(&ctx, &opts.state, &from).await?;
     let to = cmd.parse_to_route(&opts, &ctx, &node).await?;
     let authorized_identifiers = cmd.authorized.clone();
 
@@ -147,7 +140,7 @@ async fn rpc(ctx: Context, (opts, cmd): (CommandGlobalOpts, CreateCommand)) -> m
         )
     })?;
 
-    let from = format!("/node/{}", from);
+    let from = format!("/node/{}", node.node_name());
     opts.terminal
         .stdout()
         .plain(

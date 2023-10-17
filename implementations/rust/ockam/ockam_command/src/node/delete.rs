@@ -1,11 +1,10 @@
 use clap::Args;
 use colorful::Colorful;
+
 use ockam_node::Context;
 
-use crate::node::get_node_name;
-use crate::node::util::{delete_all_nodes, delete_node};
-
-use crate::util::{local_cmd, node_rpc};
+use crate::node::util::delete_all_nodes;
+use crate::util::node_rpc;
 use crate::{docs, fmt_ok, CommandGlobalOpts};
 
 const LONG_ABOUT: &str = include_str!("./static/delete/long_about.txt");
@@ -45,7 +44,6 @@ async fn run_impl(
     ctx: Context,
     (opts, cmd): (CommandGlobalOpts, DeleteCommand),
 ) -> miette::Result<()> {
-    let node_name = get_node_name(&opts.state, &cmd.node_name).await;
     let prompt_msg = if cmd.all {
         "Are you sure you want to delete all nodes?"
     } else {
@@ -62,7 +60,10 @@ async fn run_impl(
                 .plain(fmt_ok!("All nodes have been deleted"))
                 .write_line()?;
         } else {
-            delete_node(&opts, &node_name, cmd.force).await?;
+            let node_name = opts.state.get_node_name(&cmd.node_name).await?;
+            opts.state
+                .delete_node_sigkill(&node_name, cmd.force)
+                .await?;
             opts.terminal
                 .stdout()
                 .plain(fmt_ok!("Node with name '{}' has been deleted", &node_name))

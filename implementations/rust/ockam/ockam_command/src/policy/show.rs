@@ -34,9 +34,8 @@ async fn rpc(ctx: Context, (opts, cmd): (CommandGlobalOpts, ShowCommand)) -> mie
 }
 
 async fn run_impl(ctx: &Context, opts: CommandGlobalOpts, cmd: ShowCommand) -> miette::Result<()> {
-    let node_name = extract_address_value(&cmd.at)?;
+    let node = BackgroundNode::create(ctx, &opts.state, &Some(cmd.at)).await?;
     let req = Request::get(policy_path(&cmd.resource, &cmd.action));
-    let node = BackgroundNode::create(ctx, &opts.state, &node_name).await?;
     let policy: Policy = node.ask(ctx, req).await?;
     println!("{}", policy.expression());
     Ok(())

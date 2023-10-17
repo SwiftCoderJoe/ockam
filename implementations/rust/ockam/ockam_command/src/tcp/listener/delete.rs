@@ -5,9 +5,7 @@ use ockam::Context;
 use ockam_api::nodes::{models, BackgroundNode};
 use ockam_core::api::Request;
 
-use crate::node::{get_node_name, initialize_node_if_default};
 use crate::util::node_rpc;
-use crate::util::parse_node_name;
 use crate::{docs, fmt_ok, node::NodeOpts, CommandGlobalOpts};
 
 const AFTER_LONG_HELP: &str = include_str!("./static/delete/after_long_help.txt");
@@ -29,7 +27,6 @@ pub struct DeleteCommand {
 
 impl DeleteCommand {
     pub fn run(self, opts: CommandGlobalOpts) {
-        initialize_node_if_default(&opts, &self.node_opts.at_node);
         node_rpc(run_impl, (opts, self));
     }
 }
@@ -42,9 +39,7 @@ async fn run_impl(
         cmd.yes,
         "Are you sure you want to delete this TCP listener?",
     )? {
-        let node_name = get_node_name(&opts.state, &cmd.node_opts.at_node).await;
-        let node_name = parse_node_name(&node_name)?;
-        let node = BackgroundNode::create(&ctx, &opts.state, &node_name).await?;
+        let node = BackgroundNode::create(&ctx, &opts.state, &cmd.node_opts.at_node).await?;
         let req = Request::delete("/node/tcp/listener")
             .body(models::transport::DeleteTransport::new(cmd.address.clone()));
         node.tell(&ctx, req).await?;
@@ -52,9 +47,10 @@ async fn run_impl(
         opts.terminal
             .stdout()
             .plain(fmt_ok!(
-                "TCP listener {node_name} has been successfully deleted."
+                "TCP listener {} has been successfully deleted.",
+                node.node_name()
             ))
-            .json(serde_json::json!({ "tcp-listener": {"node": node_name } }))
+            .json(serde_json::json!({ "tcp-listener": {"node": node.node_name() } }))
             .write_line()
             .unwrap();
     }

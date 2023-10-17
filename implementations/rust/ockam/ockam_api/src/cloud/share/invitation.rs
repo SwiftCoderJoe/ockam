@@ -1,8 +1,8 @@
 use std::{fmt::Display, str::FromStr};
 
-use crate::address::extract_address_value;
 use crate::error::ApiError;
 use crate::identity::EnrollmentTicket;
+use crate::nodes::extract_address_value;
 use minicbor::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 use time::format_description::well_known::iso8601::Iso8601;

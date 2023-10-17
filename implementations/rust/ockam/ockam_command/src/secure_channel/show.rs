@@ -5,8 +5,6 @@ use ockam_api::nodes::models::secure_channel::ShowSecureChannelResponse;
 use ockam_api::nodes::BackgroundNode;
 use ockam_core::Address;
 
-use crate::node::get_node_name;
-use crate::util::parse_node_name;
 use crate::{
     docs,
     util::{api, node_rpc},
@@ -42,13 +40,10 @@ impl ShowCommand {
 }
 
 async fn rpc(ctx: Context, (opts, cmd): (CommandGlobalOpts, ShowCommand)) -> miette::Result<()> {
-    let at = get_node_name(&opts.state, &cmd.at).await;
-    let node_name = parse_node_name(&at)?;
-    let address = &cmd.address;
-
-    let node = BackgroundNode::create(&ctx, &opts.state, &node_name).await?;
-    let response: ShowSecureChannelResponse =
-        node.ask(&ctx, api::show_secure_channel(address)).await?;
+    let node = BackgroundNode::create(&ctx, &opts.state, &cmd.at).await?;
+    let response: ShowSecureChannelResponse = node
+        .ask(&ctx, api::show_secure_channel(&cmd.address))
+        .await?;
     opts.println(&response)?;
     Ok(())
 }

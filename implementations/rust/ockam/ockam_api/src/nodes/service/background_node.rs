@@ -1,16 +1,20 @@
+use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 
-use miette::IntoDiagnostic;
+use miette::{miette, IntoDiagnostic, WrapErr};
 use minicbor::{Decode, Encode};
 
 use ockam_core::api::{Reply, Request};
 use ockam_core::{AsyncTryClone, Route};
+use ockam_multiaddr::proto::{Node, Project, Service};
+use ockam_multiaddr::{proto, MultiAddr, Protocol};
 use ockam_node::api::Client;
 use ockam_node::Context;
 use ockam_transport_tcp::{TcpConnectionOptions, TcpTransport};
 
 use crate::cli_state::CliState;
+use crate::error::ApiError;
 use crate::nodes::NODEMANAGER_ADDR;
 
 /// This struct represents a node that has been started
@@ -31,13 +35,21 @@ impl BackgroundNode {
     /// Create a new client to send requests to a running background node
     /// This function instantiates a TcpTransport. Since a TcpTransport can only be created once
     /// this function must only be called once
+    ///
+    /// The optional node name is used to locate the node. It is either
+    /// a node specified by the user or the default node if no node name is given.
     pub async fn create(
         ctx: &Context,
         cli_state: &CliState,
-        node_name: &str,
+        node_name: &Option<String>,
     ) -> miette::Result<BackgroundNode> {
         let tcp_transport = TcpTransport::create(ctx).await.into_diagnostic()?;
-        BackgroundNode::new(&tcp_transport, cli_state, node_name).await
+        let node_name = cli_state.get_node_name(node_name).await?;
+        if !cli_state.is_node_running(&node_name).await? {
+            return Err(miette!("The node '{}' is not running", node_name));
+        }
+
+        BackgroundNode::new(&tcp_transport, cli_state, node_name.as_str()).await
     }
 
     /// Create a new client to send requests to a running background node
@@ -59,6 +71,10 @@ impl BackgroundNode {
     pub fn set_node_name(&mut self, node_name: &str) -> &Self {
         self.node_name = node_name.to_string();
         self
+    }
+
+    pub fn node_name(&self) -> String {
+        self.node_name.clone()
     }
 
     /// Use a default timeout for making requests
@@ -165,5 +181,137 @@ impl BackgroundNode {
     ) -> miette::Result<Client> {
         let route = self.create_route().await?;
         Ok(Client::new(&route, timeout))
+    }
+}
+
+/// Parses a node's input string for its name in case it's a `MultiAddr` string.
+///
+/// Ensures that the node's name will be returned if the input string is a `MultiAddr` of the `node` type
+/// Examples: `n1` or `/node/n1` returns `n1`; `/project/p1` or `/tcp/n2` returns an error message.
+pub fn parse_node_name(input: &str) -> miette::Result<String> {
+    if input.is_empty() {
+        return Err(miette!("Empty address in node name argument").into());
+    }
+    // Node name was passed as "n1", for example
+    if !input.contains('/') {
+        return Ok(input.to_string());
+    }
+    // Input has "/", so we process it as a MultiAddr
+    let maddr = MultiAddr::from_str(input)
+        .into_diagnostic()
+        .wrap_err("Invalid format for node name argument")?;
+    let err_message = String::from("A node MultiAddr must follow the format /node/<name>");
+    if let Some(p) = maddr.iter().next() {
+        if p.code() == proto::Node::CODE {
+            let node_name = p
+                .cast::<proto::Node>()
+                .ok_or(miette!("Failed to parse the 'node' protocol"))?
+                .to_string();
+            if !node_name.is_empty() {
+                return Ok(node_name);
+            }
+        }
+    }
+    Err(miette!(err_message).into())
+}
+
+/// Get address value from a string.
+///
+/// The input string can be either a plain address of a MultiAddr formatted string.
+/// Examples: `/node/<name>`, `<name>`
+pub fn extract_address_value(input: &str) -> Result<String, ApiError> {
+    // we default to the `input` value
+    let mut addr = input.to_string();
+    // if input has "/", we process it as a MultiAddr
+    if input.contains('/') {
+        let maddr = MultiAddr::from_str(input)?;
+        if let Some(p) = maddr.iter().next() {
+            match p.code() {
+                Node::CODE => {
+                    addr = p
+                        .cast::<Node>()
+                        .ok_or(ApiError::message("Failed to parse `node` protocol"))?
+                        .to_string();
+                }
+                Service::CODE => {
+                    addr = p
+                        .cast::<Service>()
+                        .ok_or(ApiError::message("Failed to parse `service` protocol"))?
+                        .to_string();
+                }
+                Project::CODE => {
+                    addr = p
+                        .cast::<Project>()
+                        .ok_or(ApiError::message("Failed to parse `project` protocol"))?
+                        .to_string();
+                }
+                code => return Err(ApiError::message(format!("Protocol {code} not supported"))),
+            }
+        } else {
+            return Err(ApiError::message("invalid address protocol"));
+        }
+    }
+    if addr.is_empty() {
+        return Err(ApiError::message(format!(
+            "Empty address in input: {input}"
+        )));
+    }
+    Ok(addr)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_node_name() {
+        let test_cases = vec![
+            ("", Err(())),
+            ("test", Ok("test")),
+            ("/test", Err(())),
+            ("test/", Err(())),
+            ("/node", Err(())),
+            ("/node/", Err(())),
+            ("/node/n1", Ok("n1")),
+            ("/service/s1", Err(())),
+            ("/project/p1", Err(())),
+            ("/randomprotocol/rp1", Err(())),
+            ("/node/n1/tcp", Err(())),
+            ("/node/n1/test", Err(())),
+            ("/node/n1/tcp/22", Ok("n1")),
+        ];
+        for (input, expected) in test_cases {
+            if let Ok(addr) = expected {
+                assert_eq!(parse_node_name(input).unwrap(), addr);
+            } else {
+                assert!(parse_node_name(input).is_err());
+            }
+        }
+    }
+
+    #[test]
+    fn test_extract_address_value() {
+        let test_cases = vec![
+            ("", Err(())),
+            ("test", Ok("test")),
+            ("/test", Err(())),
+            ("test/", Err(())),
+            ("/node", Err(())),
+            ("/node/", Err(())),
+            ("/node/n1", Ok("n1")),
+            ("/service/s1", Ok("s1")),
+            ("/project/p1", Ok("p1")),
+            ("/randomprotocol/rp1", Err(())),
+            ("/node/n1/tcp", Err(())),
+            ("/node/n1/test", Err(())),
+            ("/node/n1/tcp/22", Ok("n1")),
+        ];
+        for (input, expected) in test_cases {
+            if let Ok(addr) = expected {
+                assert_eq!(extract_address_value(input).unwrap(), addr);
+            } else {
+                assert!(extract_address_value(input).is_err());
+            }
+        }
     }
 }

@@ -13,10 +13,7 @@ use ockam_api::cli_state::CliState;
 use ockam_api::config::lookup::{InternetAddress, LookupMeta};
 use ockam_core::DenyAll;
 use ockam_multiaddr::proto::{DnsAddr, Ip4, Ip6, Project, Space, Tcp};
-use ockam_multiaddr::{
-    proto::{self, Node},
-    MultiAddr, Protocol,
-};
+use ockam_multiaddr::{proto::Node, MultiAddr, Protocol};
 
 use crate::error::Error;
 use crate::Result;
@@ -139,37 +136,6 @@ pub fn print_path(p: &Path) -> String {
     p.to_str().unwrap_or("<unprintable>").to_string()
 }
 
-/// Parses a node's input string for its name in case it's a `MultiAddr` string.
-///
-/// Ensures that the node's name will be returned if the input string is a `MultiAddr` of the `node` type
-/// Examples: `n1` or `/node/n1` returns `n1`; `/project/p1` or `/tcp/n2` returns an error message.
-pub fn parse_node_name(input: &str) -> Result<String> {
-    if input.is_empty() {
-        return Err(miette!("Empty address in node name argument").into());
-    }
-    // Node name was passed as "n1", for example
-    if !input.contains('/') {
-        return Ok(input.to_string());
-    }
-    // Input has "/", so we process it as a MultiAddr
-    let maddr = MultiAddr::from_str(input)
-        .into_diagnostic()
-        .wrap_err("Invalid format for node name argument")?;
-    let err_message = String::from("A node MultiAddr must follow the format /node/<name>");
-    if let Some(p) = maddr.iter().next() {
-        if p.code() == proto::Node::CODE {
-            let node_name = p
-                .cast::<proto::Node>()
-                .ok_or(miette!("Failed to parse the 'node' protocol"))?
-                .to_string();
-            if !node_name.is_empty() {
-                return Ok(node_name);
-            }
-        }
-    }
-    Err(miette!(err_message).into())
-}
-
 /// Replace the node's name with its address or leave it if it's another type of address.
 ///
 /// Example:
@@ -271,58 +237,6 @@ mod tests {
     use ockam_api::nodes::models::transport::{TransportMode, TransportType};
 
     use super::*;
-
-    #[test]
-    fn test_parse_node_name() {
-        let test_cases = vec![
-            ("", Err(())),
-            ("test", Ok("test")),
-            ("/test", Err(())),
-            ("test/", Err(())),
-            ("/node", Err(())),
-            ("/node/", Err(())),
-            ("/node/n1", Ok("n1")),
-            ("/service/s1", Err(())),
-            ("/project/p1", Err(())),
-            ("/randomprotocol/rp1", Err(())),
-            ("/node/n1/tcp", Err(())),
-            ("/node/n1/test", Err(())),
-            ("/node/n1/tcp/22", Ok("n1")),
-        ];
-        for (input, expected) in test_cases {
-            if let Ok(addr) = expected {
-                assert_eq!(parse_node_name(input).unwrap(), addr);
-            } else {
-                assert!(parse_node_name(input).is_err());
-            }
-        }
-    }
-
-    #[test]
-    fn test_extract_address_value() {
-        let test_cases = vec![
-            ("", Err(())),
-            ("test", Ok("test")),
-            ("/test", Err(())),
-            ("test/", Err(())),
-            ("/node", Err(())),
-            ("/node/", Err(())),
-            ("/node/n1", Ok("n1")),
-            ("/service/s1", Ok("s1")),
-            ("/project/p1", Ok("p1")),
-            ("/randomprotocol/rp1", Err(())),
-            ("/node/n1/tcp", Err(())),
-            ("/node/n1/test", Err(())),
-            ("/node/n1/tcp/22", Ok("n1")),
-        ];
-        for (input, expected) in test_cases {
-            if let Ok(addr) = expected {
-                assert_eq!(extract_address_value(input).unwrap(), addr);
-            } else {
-                assert!(extract_address_value(input).is_err());
-            }
-        }
-    }
 
     #[ockam_macros::test(crate = "ockam")]
     async fn test_process_multi_addr(ctx: &mut Context) -> ockam::Result<()> {

@@ -12,10 +12,8 @@ use ockam_api::nodes::BackgroundNode;
 use ockam_api::route_to_multiaddr;
 use ockam_core::{route, Address};
 
-use crate::node::get_node_name;
 use crate::output::Output;
 use crate::terminal::OckamColor;
-use crate::util::parse_node_name;
 use crate::{
     docs,
     util::{api, node_rpc},
@@ -83,16 +81,9 @@ impl ListCommand {
 }
 
 async fn rpc(ctx: Context, (opts, cmd): (CommandGlobalOpts, ListCommand)) -> miette::Result<()> {
-    let at = get_node_name(&opts.state, &cmd.at).await;
-    let node_name = parse_node_name(&at)?;
-
-    if !opts.state.is_node_running(&node_name).await? {
-        return Err(miette!("The node '{}' is not running", node_name));
-    }
+    let node = BackgroundNode::create(&ctx, &opts.state, &cmd.at).await?;
 
     let is_finished: Mutex<bool> = Mutex::new(false);
-    let node = BackgroundNode::create(&ctx, &opts.state, &node_name).await?;
-
     let get_secure_channel_identifiers = async {
         let secure_channel_identifiers: Vec<String> =
             node.ask(&ctx, api::list_secure_channels()).await?;
@@ -114,7 +105,7 @@ async fn rpc(ctx: Context, (opts, cmd): (CommandGlobalOpts, ListCommand)) -> mie
             let request = api::show_secure_channel(&Address::from(channel_addr));
             let show_response: ShowSecureChannelResponse = node.ask(&ctx, request).await?;
             let secure_channel_output =
-                cmd.build_output(&node_name, channel_addr, show_response)?;
+                cmd.build_output(&node.node_name(), channel_addr, show_response)?;
             *is_finished.lock().await = true;
             Ok(secure_channel_output)
         };
@@ -135,8 +126,8 @@ async fn rpc(ctx: Context, (opts, cmd): (CommandGlobalOpts, ListCommand)) -> mie
 
     let list = opts.terminal.build_list(
         &responses,
-        &format!("Secure Channels on {}", node_name),
-        &format!("No secure channels found on {}", node_name),
+        &format!("Secure Channels on {}", node.node_name()),
+        &format!("No secure channels found on {}", node.node_name()),
     )?;
     opts.terminal.stdout().plain(list).write_line()?;
 

@@ -6,7 +6,7 @@ use tracing::warn;
 
 use ockam::identity::Identifier;
 use ockam::Context;
-use ockam_api::cli_state::enrollment::IdentityEnrollment;
+use ockam_api::cli_state::enrollment::{EnrollmentStatus, IdentityEnrollment};
 use ockam_api::cloud::project::{OrchestratorVersionInfo, Projects};
 use ockam_api::nodes::models::base::NodeStatus as NodeStatusModel;
 use ockam_api::nodes::{BackgroundNode, InMemoryNode};
@@ -63,7 +63,7 @@ async fn get_nodes_details(ctx: &Context, opts: &CommandGlobalOpts) -> Result<Ve
     if nodes.is_empty() {
         return Ok(node_details);
     }
-    let mut node_client = BackgroundNode::create(ctx, &opts.state, "default").await?;
+    let mut node_client = BackgroundNode::create(ctx, &opts.state, &Some("default".into())).await?;
     node_client.set_timeout(Duration::from_millis(200));
 
     for node in nodes {
@@ -114,7 +114,7 @@ fn print_output(opts: CommandGlobalOpts, cmd: StatusCommand, status: StatusData)
 }
 
 fn build_plain_output(
-    opts: &CommandGlobalOpts,
+    _opts: &CommandGlobalOpts,
     cmd: &StatusCommand,
     status: &StatusData,
 ) -> Result<Vec<u8>> {
@@ -196,7 +196,6 @@ impl StatusData {
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
 struct IdentityWithLinkedNodes {
     identity: IdentityEnrollment,
     nodes: Vec<NodeDetails>,

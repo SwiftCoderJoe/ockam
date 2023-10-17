@@ -4,7 +4,6 @@ use clap::Args;
 use miette::{Context as _, IntoDiagnostic};
 
 use ockam::Context;
-use ockam_api::address::extract_address_value;
 use ockam_api::nodes::service::message::{MessageSender, SendMessage};
 use ockam_api::nodes::BackgroundNode;
 use ockam_api::nodes::InMemoryNode;
@@ -79,8 +78,7 @@ async fn rpc(ctx: Context, (opts, cmd): (CommandGlobalOpts, SendCommand)) -> mie
         // Setup environment depending on whether we are sending the message from an background node
         // or an in-memory node
         let response: Vec<u8> = if let Some(node) = &cmd.from {
-            let node_name = extract_address_value(node)?;
-            BackgroundNode::create(ctx, &opts.state, &node_name)
+            BackgroundNode::create(ctx, &opts.state, &Some(node.to_string()))
                 .await?
                 .set_timeout(cmd.timeout)
                 .ask(ctx, req(&to, msg_bytes))

@@ -16,6 +16,13 @@ use crate::config::lookup::InternetAddress;
 pub trait NodesRepository: Send + Sync + 'static {
     async fn store_node(&self, node_info: &NodeInfo) -> Result<()>;
     async fn get_nodes(&self) -> Result<Vec<NodeInfo>>;
+    async fn get_node(&self, node_name: &str) -> Result<Option<NodeInfo>>;
+    async fn get_default_node(&self) -> Result<Option<NodeInfo>>;
+    async fn set_default_node(&self, node_name: &str) -> Result<()>;
+    async fn delete_node(&self, node_name: &str) -> Result<()>;
+    async fn delete_default_node(&self) -> Result<()>;
+    async fn set_tcp_listener_address(&self, node_name: &str, address: &str) -> Result<()>;
+    async fn set_node_pid(&self, node_name: &str, pid: u32) -> Result<()>;
 }
 
 pub struct NodesSqlxDatabase {
@@ -57,9 +64,67 @@ impl NodesRepository for NodesSqlxDatabase {
         let rows: Vec<NodeRow> = query.fetch_all(&self.database.pool).await.into_core()?;
         rows.iter().map(|r| r.node_info()).collect()
     }
+
+    async fn get_node(&self, node_name: &str) -> Result<Option<NodeInfo>> {
+        let query = query_as("SELECT * FROM node WHERE name = ?").bind(node_name.to_sql());
+        let row: Option<NodeRow> = query
+            .fetch_optional(&self.database.pool)
+            .await
+            .into_core()?;
+        row.map(|r| r.node_info()).transpose()
+    }
+
+    async fn get_default_node(&self) -> Result<Option<NodeInfo>> {
+        let query = query_as("SELECT * FROM node WHERE is_default = ?").bind(true.to_sql());
+        let row: Option<NodeRow> = query
+            .fetch_optional(&self.database.pool)
+            .await
+            .into_core()?;
+        row.map(|r| r.node_info()).transpose()
+    }
+
+    async fn set_default_node(&self, node_name: &str) -> Result<()> {
+        let transaction = self.database.pool.acquire().await.into_core()?;
+        // set the node as the default one
+        let query1 = query("UPDATE node SET is_default = ? WHERE name = ?")
+            .bind(true.to_sql())
+            .bind(node_name.to_sql());
+        query1.execute(&self.database.pool).await.void()?;
+
+        // set all the others as non-default
+        let query2 = query("UPDATE node SET is_default = ? WHERE name <> ?")
+            .bind(false.to_sql())
+            .bind(node_name.to_sql());
+        query2.execute(&self.database.pool).await.void()?;
+        transaction.close().await.into_core()
+    }
+
+    async fn delete_node(&self, node_name: &str) -> Result<()> {
+        let query = query("DELETE FROM node WHERE name=?").bind(node_name.to_sql());
+        query.execute(&self.database.pool).await.void()
+    }
+
+    async fn delete_default_node(&self) -> Result<()> {
+        let query = query("DELETE FROM node WHERE is_default=?").bind(true.to_sql());
+        query.execute(&self.database.pool).await.void()
+    }
+
+    async fn set_tcp_listener_address(&self, node_name: &str, address: &str) -> Result<()> {
+        let query = query("UPDATE node SET tcp_listener_address = ? WHERE name = ?")
+            .bind(address.to_sql())
+            .bind(node_name.to_sql());
+        query.execute(&self.database.pool).await.void()
+    }
+
+    async fn set_node_pid(&self, node_name: &str, pid: u32) -> Result<()> {
+        let query = query("UPDATE node SET pid = ? WHERE name = ?")
+            .bind(pid.to_sql())
+            .bind(node_name.to_sql());
+        query.execute(&self.database.pool).await.void()
+    }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct NodeInfo {
     name: String,
     identifier: Identifier,
@@ -191,7 +256,10 @@ mod test {
 
         repository.store_node(&node_info).await?;
         let result = repository.get_nodes().await?;
-        assert_eq!(result, vec![node_info]);
+        assert_eq!(result, vec![node_info.clone()]);
+
+        let result = repository.get_node("node_name").await?;
+        assert_eq!(result, Some(node_info));
         Ok(())
     }
 

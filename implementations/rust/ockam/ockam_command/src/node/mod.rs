@@ -7,7 +7,6 @@ use default::DefaultCommand;
 use delete::DeleteCommand;
 use list::ListCommand;
 use logs::LogCommand;
-use ockam_api::cli_state::CliState;
 use show::ShowCommand;
 use start::StartCommand;
 use stop::StopCommand;
@@ -83,27 +82,10 @@ pub struct NodeOpts {
 /// If the required node name is the default node but that node has not been initialized yet
 /// then initialize it
 pub async fn initialize_node_if_default(opts: &CommandGlobalOpts, node_name: &Option<String>) {
-    let node_name = get_node_name(&opts.state, node_name).await;
+    let node_name = opts.state.get_node_name(node_name).await?;
     if node_name == "default" && opts.state.get_default_node().await.is_err() {
         spawn_default_node(opts)
     }
-}
-
-/// Return the node_name if Some otherwise return the default node name
-pub async fn get_node_name(cli_state: &CliState, node_name: &Option<String>) -> String {
-    match node_name {
-        Some(name) => name.clone(),
-        None => get_default_node_name(cli_state).await,
-    }
-}
-
-/// Return the default node name
-pub async fn get_default_node_name(cli_state: &CliState) -> String {
-    cli_state
-        .get_default_node()
-        .await
-        .map(|n| n.name())
-        .unwrap_or_else(|_| "default".to_string())
 }
 
 /// Start the default node

@@ -167,11 +167,6 @@ impl NodeManager {
                 .collect(),
         )
     }
-
-    /// Delete the cli state related to the current node when launched in-memory
-    pub async fn delete_node(&self) -> Result<()> {
-        Ok(self.cli_state.delete_node(&self.node_name()).await?)
-    }
 }
 
 impl NodeManager {

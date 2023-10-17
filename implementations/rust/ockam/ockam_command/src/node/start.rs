@@ -5,8 +5,7 @@ use ockam_api::nodes::BackgroundNode;
 use ockam_node::Context;
 
 use crate::node::show::print_query_status;
-use crate::node::util::{check_default, spawn_node};
-use crate::node::{get_node_name, initialize_node_if_default};
+use crate::node::util::spawn_node;
 use crate::util::node_rpc;
 use crate::{docs, fmt_err, CommandGlobalOpts};
 
@@ -32,7 +31,6 @@ pub struct StartCommand {
 
 impl StartCommand {
     pub fn run(self, opts: CommandGlobalOpts) {
-        initialize_node_if_default(&opts, &self.node_name);
         node_rpc(run_impl, (opts, self))
     }
 }
@@ -41,8 +39,7 @@ async fn run_impl(
     ctx: Context,
     (mut opts, cmd): (CommandGlobalOpts, StartCommand),
 ) -> miette::Result<()> {
-    let node_name = get_node_name(&opts.state, &cmd.node_name).await;
-
+    let node_name = opts.state.get_node_name(&cmd.node_name).await?;
     let node_info = opts.state.get_node(&node_name).await?;
     // Abort if node is already running
     if node_info.is_running() {
@@ -81,9 +78,7 @@ async fn run_impl(
     .await?;
 
     // Print node status
-    let mut node = BackgroundNode::create(&ctx, &opts.state, &node_name).await?;
-    let is_default = check_default(&opts, &node_name).await?;
-    print_query_status(&opts, &ctx, &node_name, &mut node, true, is_default).await?;
-
+    let mut node = BackgroundNode::create(&ctx, &opts.state, &Some(node_name)).await?;
+    print_query_status(&opts, &ctx, &mut node, true).await?;
     Ok(())
 }

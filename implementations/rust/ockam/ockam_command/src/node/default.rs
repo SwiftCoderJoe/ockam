@@ -4,7 +4,6 @@ use miette::miette;
 
 use ockam_node::Context;
 
-use crate::node::get_node_name;
 use crate::util::node_rpc;
 use crate::{docs, fmt_ok, CommandGlobalOpts};
 
@@ -32,15 +31,17 @@ async fn run_impl(
     _cxt: Context,
     (opts, cmd): (CommandGlobalOpts, DefaultCommand),
 ) -> miette::Result<()> {
-    let name = get_node_name(&opts.state, &Some(cmd.node_name)).await;
-    if opts.state.is_default_node(&name).await? {
-        Err(miette!("The node '{name}' is already the default"))
+    if opts.state.is_default_node(&cmd.node_name).await? {
+        Err(miette!(
+            "The node '{}' is already the default",
+            cmd.node_name
+        ))
     } else {
-        opts.state.set_default_node(&name).await?;
+        opts.state.set_default_node(&cmd.node_name).await?;
         opts.terminal
             .stdout()
-            .plain(fmt_ok!("The node '{name}' is now the default"))
-            .machine(&name)
+            .plain(fmt_ok!("The node '{}' is now the default", cmd.node_name))
+            .machine(&cmd.node_name)
             .write_line()?;
         Ok(())
     }
