@@ -506,8 +506,8 @@ impl NodeManager {
     }
 
     async fn get_secure_channels_vault(&self, vault_name: Option<String>) -> Result<Vault> {
-        if let Some(vault) = vault_name {
-            let existing_vault = self.cli_state.vaults.get(vault.as_str())?.get().await?;
+        if let Some(vault_name) = vault_name {
+            let existing_vault = self.cli_state.get_vault_by_name(&vault_name).await?;
             Ok(existing_vault)
         } else {
             Ok(self.secure_channels_vault())

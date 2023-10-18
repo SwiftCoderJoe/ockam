@@ -10,7 +10,6 @@ use ockam_core::compat::collections::HashMap;
 use crate::output::{CredentialAndPurposeKeyDisplay, EncodeFormat};
 use crate::{
     util::{node_rpc, parsers::identity_identifier_parser},
-    vault::default_vault_name,
     CommandGlobalOpts, Result,
 };
 
@@ -64,11 +63,10 @@ async fn run_impl(
         .get_identifier_by_optional_name(&cmd.as_identity)
         .await?;
 
-    let vault_name = cmd
-        .vault
-        .clone()
-        .unwrap_or_else(|| default_vault_name(&opts.state));
-    let identities = opts.state.get_identities_with_vault(&vault_name).await?;
+    let identities = opts
+        .state
+        .get_identities_with_optional_vault_ame(&cmd.vault)
+        .await?;
 
     let mut attributes_builder = AttributesBuilder::with_schema(PROJECT_MEMBER_SCHEMA)
         .with_attribute(TRUST_CONTEXT_ID.to_vec(), authority.to_string());

@@ -229,9 +229,6 @@ pub fn is_tty<S: io_lifetimes::AsFilelike>(s: S) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use ockam_api::cli_state;
-    use ockam_api::cli_state::traits::StateDirTrait;
-    use ockam_api::cli_state::VaultConfig;
     use std::str::FromStr;
 
     use super::*;
@@ -240,13 +237,9 @@ mod tests {
     async fn test_process_multi_addr(ctx: &mut Context) -> ockam::Result<()> {
         let cli_state = CliState::test()?;
 
-        let v_name = cli_state::random_name();
-        let v_config = VaultConfig::default();
-        cli_state.vaults.create_async(&v_name, v_config).await?;
-        let v = cli_state.vaults.get(&v_name)?.get().await?;
         cli_state.create_identity_with_random_name().await?;
 
-        let n_state = cli_state
+        let _ = cli_state
             .set_tcp_listener_address("n1", "127.0.0.0:4000".to_string())
             .await?;
 

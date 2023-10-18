@@ -1,6 +1,6 @@
 use crate::{
     credential::validate_encoded_cred, fmt_log, fmt_ok, terminal::OckamColor, util::node_rpc,
-    vault::default_vault_name, CommandGlobalOpts,
+    CommandGlobalOpts,
 };
 use clap::Args;
 use colorful::Colorful;
@@ -63,12 +63,11 @@ async fn run_impl(
             }
         };
 
-        let vault_name = cmd
-            .vault
-            .clone()
-            .unwrap_or_else(|| default_vault_name(&opts.state));
-
-        let identities = match opts.state.get_identities_with_vault(&vault_name).await {
+        let identities = match opts
+            .state
+            .get_identities_with_optional_vault_ame(&cmd.vault)
+            .await
+        {
             Ok(i) => i,
             Err(_) => {
                 *is_finished.lock().await = true;

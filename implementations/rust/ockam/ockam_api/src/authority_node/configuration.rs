@@ -16,11 +16,8 @@ pub struct Configuration {
     /// Authority identity or identity associated with the newly created node
     pub identifier: Identifier,
 
-    /// path where the storage for identity attributes should be persisted
-    pub storage_path: PathBuf,
-
-    /// path where secrets should be persisted
-    pub vault_path: PathBuf,
+    /// path where the database should be stored
+    pub database_path: PathBuf,
 
     /// Project identifier on the Orchestrator node
     pub project_identifier: String,

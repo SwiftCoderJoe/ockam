@@ -1,14 +1,15 @@
-use crate::terminal::OckamColor;
-use crate::util::node_rpc;
-use crate::{docs, fmt_log, fmt_ok, CommandGlobalOpts};
 use clap::Args;
 use colorful::Colorful;
-use ockam::identity::Identifier;
-use ockam::Context;
-use ockam_api::cli_state::traits::StateDirTrait;
 use rand::prelude::random;
 use tokio::sync::Mutex;
 use tokio::try_join;
+
+use ockam::identity::Identifier;
+use ockam::Context;
+
+use crate::terminal::OckamColor;
+use crate::util::node_rpc;
+use crate::{docs, fmt_log, fmt_ok, CommandGlobalOpts};
 
 const LONG_ABOUT: &str = include_str!("./static/create/long_about.txt");
 const AFTER_LONG_HELP: &str = include_str!("./static/create/after_long_help.txt");
@@ -56,23 +57,21 @@ impl CreateCommand {
         let is_finished: Mutex<bool> = Mutex::new(false);
 
         let send_req = async {
-            let default_vault_created =
-                self.vault.is_none() && opts.state.vaults.default().is_err();
-            let vault_state = opts.state.create_vault_state(self.vault.as_deref()).await?;
-            if default_vault_created {
-                opts.terminal.write_line(&fmt_log!(
-                    "Default vault created: {}\n",
-                    &vault_state
-                        .name()
-                        .to_string()
-                        .color(OckamColor::PrimaryResource.color())
-                ))?;
-            }
+            let result = opts.state.create_named_vault(&self.vault).await?;
+            let vault_name = match result {
+                Ok(v) => {
+                    opts.terminal.write_line(&fmt_log!(
+                        "Default vault created: {}\n",
+                        v.name().color(OckamColor::PrimaryResource.color())
+                    ))?;
+                    v.name()
+                }
+                Err(name) => name,
+            };
 
-            let vault = vault_state.get().await?;
             let identifier = opts
                 .state
-                .create_identity_with_name_and_vault(&self.name, vault_state.name())
+                .create_identity_with_name_and_vault(&self.name, &vault_name)
                 .await?;
 
             *is_finished.lock().await = true;

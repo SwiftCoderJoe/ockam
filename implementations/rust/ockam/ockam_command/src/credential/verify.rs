@@ -1,8 +1,6 @@
 use std::path::PathBuf;
 
-use crate::{
-    fmt_err, fmt_log, fmt_ok, util::node_rpc, vault::default_vault_name, CommandGlobalOpts,
-};
+use crate::{fmt_err, fmt_log, fmt_ok, util::node_rpc, CommandGlobalOpts};
 use miette::miette;
 
 use clap::Args;
@@ -64,14 +62,13 @@ async fn run_impl(
             }
         };
 
-        let vault_name = cmd
-            .vault
-            .clone()
-            .unwrap_or_else(|| default_vault_name(&opts.state));
-
         let issuer = cmd.issuer();
 
-        let identities = match opts.state.get_identities_with_vault(&vault_name).await {
+        let identities = match opts
+            .state
+            .get_identities_with_optional_vault_ame(&cmd.vault)
+            .await
+        {
             Ok(i) => i,
             Err(_) => {
                 *is_finished.lock().await = true;

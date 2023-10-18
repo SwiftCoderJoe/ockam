@@ -40,6 +40,7 @@ CREATE TABLE tcp_outlet (
 CREATE TABLE named_identity (
   identifier TEXT NOT NULL UNIQUE,
   name TEXT UNIQUE,
+  vault_name TEXT NOT NULL,
   is_default INTEGER DEFAULT 0
 );
 
@@ -77,6 +78,7 @@ CREATE TABLE okta (
 CREATE TABLE vault (
    name TEXT PRIMARY KEY,
    path TEXT NOT NULL,
+   is_aws_kms INTEGER,
    is_default INTEGER
 );
 

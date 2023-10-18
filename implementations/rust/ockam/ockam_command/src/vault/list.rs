@@ -1,9 +1,8 @@
 use clap::Args;
 use miette::IntoDiagnostic;
+use ockam_node::Context;
 
-use ockam_api::cli_state::traits::StateDirTrait;
-
-use crate::util::local_cmd;
+use crate::util::node_rpc;
 use crate::{docs, CommandGlobalOpts};
 
 const LONG_ABOUT: &str = include_str!("./static/list/long_about.txt");
@@ -21,12 +20,12 @@ pub struct ListCommand;
 
 impl ListCommand {
     pub fn run(self, opts: CommandGlobalOpts) {
-        local_cmd(run_impl(opts));
+        node_rpc(run_impl, opts);
     }
 }
 
-fn run_impl(opts: CommandGlobalOpts) -> miette::Result<()> {
-    let vaults = opts.state.vaults.list()?;
+async fn run_impl(_ctx: Context, opts: CommandGlobalOpts) -> miette::Result<()> {
+    let vaults = opts.state.get_named_vaults().await?;
     let plain = opts
         .terminal
         .build_list(&vaults, "Vaults", "No vaults found on this system.")?;

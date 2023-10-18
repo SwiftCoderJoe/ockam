@@ -247,7 +247,7 @@ mod tests {
         change_history_repository.store_identity(&identity).await?;
 
         identities_repository
-            .name_identity(identity.identifier(), name)
+            .store_named_identity(identity.identifier(), name)
             .await?;
         if name == "identity1" {
             identities_repository

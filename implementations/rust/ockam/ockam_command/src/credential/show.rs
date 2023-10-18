@@ -5,9 +5,7 @@ use ockam::Context;
 use ockam_api::cli_state::{StateDirTrait, StateItemTrait};
 
 use crate::output::CredentialAndPurposeKeyDisplay;
-use crate::{
-    credential::validate_encoded_cred, util::node_rpc, vault::default_vault_name, CommandGlobalOpts,
-};
+use crate::{credential::validate_encoded_cred, util::node_rpc, CommandGlobalOpts};
 
 #[derive(Clone, Debug, Args)]
 pub struct ShowCommand {
@@ -28,22 +26,13 @@ async fn run_impl(
     _ctx: Context,
     (opts, cmd): (CommandGlobalOpts, ShowCommand),
 ) -> miette::Result<()> {
-    let vault_name = cmd
-        .vault
-        .clone()
-        .unwrap_or_else(|| default_vault_name(&opts.state));
-    display_credential(&opts, &cmd.credential_name, &vault_name).await
-}
-
-pub(crate) async fn display_credential(
-    opts: &CommandGlobalOpts,
-    cred_name: &str,
-    vault_name: &str,
-) -> miette::Result<()> {
-    let cred = opts.state.credentials.get(cred_name)?;
+    let cred = opts.state.credentials.get(&cmd.credential_name)?;
     let cred_config = cred.config();
 
-    let identities = opts.state.get_identities_with_vault(vault_name).await?;
+    let identities = opts
+        .state
+        .get_identities_with_optional_vault_ame(&cmd.vault)
+        .await?;
     identities
         .identities_creation()
         .import(
@@ -65,7 +54,7 @@ pub(crate) async fn display_credential(
     };
 
     let cred = cred_config.credential()?;
-    println!("Credential: {cred_name} {is_verified}");
+    println!("Credential: {} {is_verified}", cmd.credential_name);
     println!("{}", CredentialAndPurposeKeyDisplay(cred));
 
     Ok(())

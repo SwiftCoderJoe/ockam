@@ -12,7 +12,6 @@ use ockam::Context;
 use ockam_api::authority_node;
 use ockam_api::authority_node::{OktaConfiguration, TrustedIdentity};
 use ockam_api::bootstrapped_identities_store::PreTrustedIdentities;
-use ockam_api::cli_state::traits::StateDirTrait;
 use ockam_api::DefaultAddress;
 use ockam_core::compat::collections::HashMap;
 use ockam_core::compat::fmt;
@@ -304,8 +303,7 @@ async fn start_authority_node(
 
     let configuration = authority_node::Configuration {
         identifier,
-        storage_path: opts.state.database_path(),
-        vault_path: opts.state.vaults.default()?.vault_file_path().clone(),
+        database_path: opts.state.database_path(),
         project_identifier: cmd.project_identifier,
         tcp_listener_address: cmd.tcp_listener_address,
         secure_channel_listener_name: None,

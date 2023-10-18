@@ -2,10 +2,9 @@ use std::fmt::Write;
 
 use clap::Args;
 use miette::IntoDiagnostic;
+use ockam_node::Context;
 
-use ockam_api::cli_state::traits::StateDirTrait;
-
-use crate::util::local_cmd;
+use crate::util::node_rpc;
 use crate::{docs, CommandGlobalOpts};
 
 const LONG_ABOUT: &str = include_str!("./static/show/long_about.txt");
@@ -26,23 +25,22 @@ pub struct ShowCommand {
 
 impl ShowCommand {
     pub fn run(self, opts: CommandGlobalOpts) {
-        local_cmd(run_impl(opts, self));
+        node_rpc(run_impl, (opts, self));
     }
 }
 
-fn run_impl(opts: CommandGlobalOpts, cmd: ShowCommand) -> miette::Result<()> {
-    let name = cmd
-        .name
-        .unwrap_or(opts.state.vaults.default()?.name().to_string());
-    let state = opts.state.vaults.get(name)?;
-
-    let json = serde_json::to_string_pretty(&state).into_diagnostic()?;
+async fn run_impl(
+    _ctx: Context,
+    (opts, cmd): (CommandGlobalOpts, ShowCommand),
+) -> miette::Result<()> {
+    let named_vault = opts.state.get_named_vault_or_default(&cmd.name).await?;
+    let json = serde_json::to_string_pretty(&named_vault).into_diagnostic()?;
 
     let plain = {
         let mut buf = String::new();
 
         writeln!(buf, "Vault:").into_diagnostic()?;
-        for line in state.to_string().lines() {
+        for line in named_vault.to_string().lines() {
             writeln!(buf, "{:2}{}", "", line).into_diagnostic()?;
         }
         buf

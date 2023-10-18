@@ -7,16 +7,17 @@ use colorful::Colorful;
 use miette::miette;
 use miette::IntoDiagnostic;
 use minicbor::Encode;
+use serde::{Serialize, Serializer};
+
 use ockam::identity::models::{
     CredentialAndPurposeKey, CredentialData, CredentialVerifyingKey, PurposeKeyAttestation,
     PurposeKeyAttestationData, PurposePublicKey,
 };
 use ockam::identity::{Credential, Identifier, Identity, TimestampInSeconds};
-use serde::{Serialize, Serializer};
-
-use ockam_api::cli_state::{ProjectConfigCompact, StateItemTrait, VaultState};
+use ockam_api::cli_state::ProjectConfigCompact;
 use ockam_api::cloud::project::Project;
 use ockam_api::cloud::space::Space;
+use ockam_api::identity::NamedVault;
 use ockam_api::nodes::models::portal::{InletStatus, OutletStatus};
 use ockam_api::nodes::models::secure_channel::{
     CreateSecureChannelResponse, ShowSecureChannelResponse,
@@ -361,37 +362,17 @@ From {} to {}"#,
     }
 }
 
-impl Output for VaultState {
+impl Output for NamedVault {
     fn output(&self) -> Result<String> {
         let mut output = String::new();
         writeln!(output, "Name: {}", self.name())?;
         writeln!(
             output,
             "Type: {}",
-            match self.config().is_aws() {
+            match self.is_aws_kms() {
                 true => "AWS KMS",
                 false => "OCKAM",
             }
-        )?;
-        Ok(output)
-    }
-
-    fn list_output(&self) -> Result<String> {
-        let mut output = String::new();
-        writeln!(
-            output,
-            "Vault {}",
-            self.name().color(OckamColor::PrimaryResource.color())
-        )?;
-        write!(
-            output,
-            "Type {}",
-            match self.config().is_aws() {
-                true => "AWS KMS",
-                false => "OCKAM",
-            }
-            .to_string()
-            .color(OckamColor::PrimaryResource.color())
         )?;
         Ok(output)
     }

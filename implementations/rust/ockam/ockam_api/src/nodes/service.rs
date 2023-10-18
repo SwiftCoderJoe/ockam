@@ -371,7 +371,7 @@ impl NodeManager {
         //TODO: fix this.  Either don't require it to be a bootstrappedidentitystore (and use the
         //trait instead),  or pass it from the general_options always.
         let vault: Vault = cli_state.get_node_vault(&general_options.node_name).await?;
-        let identities_repository: Arc<dyn IdentityAttributesRepository> =
+        let identity_attributes_repository: Arc<dyn IdentityAttributesRepository> =
             Arc::new(match general_options.pre_trusted_identities {
                 None => BootstrapedIdentityAttributesStore::new(
                     Arc::new(PreTrustedIdentities::new_from_string("{}")?),

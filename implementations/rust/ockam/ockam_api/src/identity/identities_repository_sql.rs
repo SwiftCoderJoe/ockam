@@ -31,18 +31,33 @@ impl IdentitiesSqlxDatabase {
 
 #[async_trait]
 impl IdentitiesRepository for IdentitiesSqlxDatabase {
-    async fn name_identity(&self, identifier: &Identifier, name: &str) -> Result<()> {
-        let query = query("INSERT OR REPLACE INTO named_identity VALUES (?, ?, ?)")
+    async fn store_named_identity(
+        &self,
+        identifier: &Identifier,
+        name: &str,
+        vault_name: &str,
+    ) -> Result<()> {
+        let query = query("INSERT OR REPLACE INTO named_identity VALUES (?, ?, ?, ?)")
             .bind(identifier.to_sql())
             .bind(name.to_sql())
+            .bind(vault_name.to_sql())
             .bind(false.to_sql());
         query.execute(&self.database.pool).await.void()
     }
 
     async fn delete_identity_by_name(&self, name: &str) -> Result<Option<Identifier>> {
         let identifier = self.get_identifier_by_name(name).await?;
+        let is_default = self.is_default_identity_by_name(name).await?;
         let query = query("DELETE FROM named_identity WHERE name=?").bind(name.to_sql());
         query.execute(&self.database.pool).await.void()?;
+
+        // if the deleted identity was the default one, select another identity to be the default one
+        if is_default {
+            let identities = self.get_named_identities().await?;
+            if let Some(identity) = identities.first() {
+                self.set_as_default(&identity.identifier()).await?;
+            };
+        }
         Ok(identifier)
     }
 
@@ -100,10 +115,10 @@ impl IdentitiesRepository for IdentitiesSqlxDatabase {
     }
 
     async fn set_as_default_by_name(&self, name: &str) -> Result<()> {
-        let query = query("UPDATE named_identity SET is_default = ? WHERE name = ?")
-            .bind(true.to_sql())
-            .bind(name.to_sql());
-        query.execute(&self.database.pool).await.void()
+        if let Some(identifier) = self.get_identifier_by_name(name).await? {
+            self.set_as_default(&identifier).await?
+        };
+        Ok(())
     }
 
     async fn get_default_identifier(&self) -> Result<Option<Identifier>> {
@@ -136,13 +151,22 @@ impl IdentitiesRepository for IdentitiesSqlxDatabase {
     }
 
     async fn is_default_identity_by_name(&self, name: &str) -> Result<bool> {
-        let query =
-            query_as("SELECT is_default FROM named_identity WHERE name=$1").bind(name.to_sql());
+        let query = query_as("SELECT * FROM named_identity WHERE name=$1").bind(name.to_sql());
         let row: Option<NamedIdentityRow> = query
             .fetch_optional(&self.database.pool)
             .await
             .into_core()?;
         Ok(row.map(|r| r.is_default).unwrap_or(false))
+    }
+
+    async fn get_identifier_vault_name(&self, identifier: &Identifier) -> Result<Option<String>> {
+        let query =
+            query_as("SELECT * FROM named_identity WHERE identifier=$1").bind(identifier.to_sql());
+        let row: Option<NamedIdentityRow> = query
+            .fetch_optional(&self.database.pool)
+            .await
+            .into_core()?;
+        Ok(row.map(|r| r.vault_name()))
     }
 }
 
@@ -150,6 +174,7 @@ impl IdentitiesRepository for IdentitiesSqlxDatabase {
 pub(crate) struct NamedIdentityRow {
     identifier: String,
     name: String,
+    vault_name: String,
     is_default: bool,
 }
 
@@ -162,10 +187,15 @@ impl NamedIdentityRow {
         self.name.clone()
     }
 
+    pub(crate) fn vault_name(&self) -> String {
+        self.vault_name.clone()
+    }
+
     pub(crate) fn named_identity(&self) -> Result<NamedIdentity> {
         Ok(NamedIdentity::new(
             self.identifier()?,
             self.name.clone(),
+            self.vault_name.clone(),
             self.is_default,
         ))
     }
@@ -189,8 +219,12 @@ mod tests {
         let repository = create_repository(db_file.path()).await?;
 
         // A name can be associated to an identity
-        repository.name_identity(&identifier1, "name1").await?;
-        repository.name_identity(&identifier2, "name2").await?;
+        repository
+            .store_named_identity(&identifier1, "name1")
+            .await?;
+        repository
+            .store_named_identity(&identifier2, "name2")
+            .await?;
 
         let result = repository.get_identifier_by_name("name1").await?;
         assert_eq!(result, Some(identifier1.clone()));
@@ -229,8 +263,12 @@ mod tests {
         let repository = create_repository(db_file.path()).await?;
 
         // A name can be associated to an identity
-        repository.name_identity(&identifier1, "name1").await?;
-        repository.name_identity(&identifier2, "name2").await?;
+        repository
+            .store_named_identity(&identifier1, "name1")
+            .await?;
+        repository
+            .store_named_identity(&identifier2, "name2")
+            .await?;
 
         // An identity can be marked as being the default one
         repository.set_as_default(&identifier1).await?;

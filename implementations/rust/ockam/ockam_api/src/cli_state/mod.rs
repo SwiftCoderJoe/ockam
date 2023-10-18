@@ -13,7 +13,6 @@ use ockam::SqlxDatabase;
 use ockam_abac::{PoliciesRepository, PolicySqlxDatabase};
 use ockam_core::compat::sync::Arc;
 use ockam_core::env::get_env_with_default;
-use ockam_core::errcode::{Kind, Origin};
 use ockam_node::Executor;
 
 pub use crate::cli_state::credentials::*;
@@ -113,7 +112,6 @@ impl From<CliStateError> for ockam_core::Error {
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct CliState {
-    pub vaults: VaultsState,
     pub spaces: SpacesState,
     pub projects: ProjectsState,
     pub credentials: CredentialsState,
@@ -139,7 +137,6 @@ impl CliState {
         let default = Self::default_dir()?;
         let dir = default.as_path();
         let state = Self {
-            vaults: VaultsState::init(dir).await?,
             spaces: SpacesState::init(dir).await?,
             projects: ProjectsState::init(dir).await?,
             credentials: CredentialsState::init(dir).await?,
@@ -176,7 +173,7 @@ impl CliState {
         )))
     }
 
-    pub async fn vaults_repository(&self) -> Result<Arc<dyn VaultsRepository>> {
+    async fn vaults_repository(&self) -> Result<Arc<dyn VaultsRepository>> {
         Ok(Arc::new(VaultsSqlxDatabase::new(self.database().await?)))
     }
 
@@ -225,10 +222,17 @@ impl CliState {
     }
 
     pub async fn get_identities_with_vault(&self, vault_name: &str) -> Result<Arc<Identities>> {
-        let vault = self.get_vault(vault_name).await?;
+        let vault = self.get_named_vault(vault_name).await?;
         self.get_identities(vault).await
     }
 
+    pub async fn get_identities_with_optional_vault_ame(
+        &self,
+        vault_name: &Option<String>,
+    ) -> Result<Arc<Identities>> {
+        let vault_name = self.get_vault_name_or_default(vault_name).await?;
+        self.get_identities_with_vault(&vault_name).await
+    }
 
     /// fault identity but if it has not been initialized yet
     // /// then initialize it
@@ -313,7 +317,6 @@ impl CliState {
 
         // Delete all other state directories
         for dir in &[
-            VaultsState::new(root_path).dir(),
             SpacesState::new(root_path).dir(),
             ProjectsState::new(root_path).dir(),
             CredentialsState::new(root_path).dir(),
@@ -373,24 +376,6 @@ impl CliState {
         Ok(dir.join("defaults"))
     }
 
-    pub async fn create_vault_state(&self, vault_name: Option<&str>) -> Result<VaultState> {
-        // Try to get the vault with the given name
-        let vault_state = if let Some(v) = vault_name {
-            self.vaults.get(v)?
-        }
-        // Or get the default
-        else if let Ok(v) = self.vaults.default() {
-            v
-        }
-        // Or create a new one with a random name
-        else {
-            let n = random_name();
-            let c = VaultConfig::default();
-            self.vaults.create_async(&n, c).await?
-        };
-        Ok(vault_state)
-    }
-
     /// Return true if the user is enrolled.
     /// At the moment this check only verifies that there is a default project.
     /// This project should be the project that is created at the end of the enrollment procedure
@@ -426,7 +411,6 @@ impl CliState {
     async fn initialize_at(dir: &Path) -> Result<Self> {
         std::fs::create_dir_all(dir.join("defaults"))?;
         let state = Self {
-            vaults: VaultsState::init(dir).await?,
             spaces: SpacesState::init(dir).await?,
             projects: ProjectsState::init(dir).await?,
             credentials: CredentialsState::init(dir).await?,
@@ -441,7 +425,6 @@ impl CliState {
     fn new(dir: &Path) -> Result<Self> {
         std::fs::create_dir_all(dir.join("defaults"))?;
         Ok(Self {
-            vaults: VaultsState::load(dir)?,
             spaces: SpacesState::load(dir)?,
             projects: ProjectsState::load(dir)?,
             credentials: CredentialsState::load(dir)?,
@@ -491,35 +474,6 @@ mod tests {
     #[ockam_macros::test(crate = "ockam")]
     async fn integration(ctx: &mut ockam::Context) -> ockam::Result<()> {
         let sut = CliState::test()?;
-
-        // Vaults
-        let vault_name = {
-            let name = random_name();
-            let config = VaultConfig::default();
-
-            let state = sut.vaults.create_async(&name, config).await.unwrap();
-            let got = sut.vaults.get(&name).unwrap();
-            assert_eq!(got, state);
-
-            let got = sut.vaults.default().unwrap();
-            assert_eq!(got, state);
-
-            name
-        };
-
-        // Nodes
-        let node_name = {
-            let name = random_name();
-
-            let node_info = sut.create_node(&name).await.unwrap();
-            let got = sut.get_node(&name).await.unwrap();
-            assert_eq!(got, node_info);
-
-            let got = sut.get_default_node().await.unwrap();
-            assert_eq!(got, node_info);
-
-            name
-        };
 
         // Spaces
         let space_name = {
@@ -578,12 +532,6 @@ mod tests {
 
         // Check structure
         let mut expected_entries = vec![
-            "vaults".to_string(),
-            format!("vaults/{vault_name}.json"),
-            "vaults/data".to_string(),
-            format!("vaults/data/{vault_name}-storage.json"),
-            "nodes".to_string(),
-            format!("nodes/{node_name}"),
             "spaces".to_string(),
             format!("spaces/{space_name}.json"),
             "projects".to_string(),
@@ -593,10 +541,6 @@ mod tests {
             "users_info".to_string(),
             format!("users_info/{user_info_email}.json"),
             "credentials".to_string(),
-            "defaults".to_string(),
-            "defaults/vault".to_string(),
-            "defaults/identity".to_string(),
-            "defaults/node".to_string(),
             "defaults/space".to_string(),
             "defaults/project".to_string(),
             "defaults/trust_context".to_string(),
@@ -659,7 +603,6 @@ mod tests {
 
         sut.spaces.delete(&space_name).unwrap();
         sut.projects.delete(&project_name).unwrap();
-        sut.vaults.delete(&vault_name).unwrap();
 
         ctx.stop().await?;
         Ok(())

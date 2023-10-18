@@ -30,11 +30,11 @@ impl CliState {
         name: &str,
         vault_name: &str,
     ) -> Result<Identifier> {
-        let vault = self.get_vault(vault_name).await?;
+        let vault = self.get_named_vault(vault_name).await?;
         let identifier = self.create_identity_with_vault(vault).await?;
         self.identities_repository()
             .await?
-            .name_identity(&identifier, name)
+            .store_named_identity(&identifier, name, vault_name)
             .await?;
         Ok(identifier)
     }
@@ -42,10 +42,10 @@ impl CliState {
     /// Create an identity associated with a name and the default vault
     pub async fn create_identity_with_name(&self, name: &str) -> Result<Identifier> {
         let vault = self.get_default_vault().await?;
-        let identifier = self.create_identity_with_vault(vault).await?;
+        let identifier = self.create_identity_with_vault(vault.clone()).await?;
         self.identities_repository()
             .await?
-            .name_identity(&identifier, name)
+            .store_named_identity(&identifier, name, &vault.name())
             .await?;
         Ok(identifier)
     }
@@ -234,6 +234,24 @@ impl CliState {
                 .await?;
         };
         Ok(())
+    }
+
+    pub async fn get_identifier_vault(&self, identifier: &Identifier) -> Result<NamedVault> {
+        if let Some(vault_name) = self
+            .identities_repository()
+            .await?
+            .get_identifier_vault_name(identifier)
+            .await?
+        {
+            self.get_named_vault(&vault_name).await
+        } else {
+            Err(Error::new(
+                Origin::Api,
+                Kind::NotFound,
+                format!("no vault found for identifier {identifier}"),
+            )
+            .into())
+        }
     }
 
     fn missing_identifier(name: &Option<String>) -> Error {

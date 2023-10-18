@@ -5,7 +5,12 @@ use ockam_core::Result;
 #[async_trait]
 pub trait IdentitiesRepository: Send + Sync + 'static {
     /// Associate a name to an identity
-    async fn name_identity(&self, identifier: &Identifier, name: &str) -> Result<()>;
+    async fn store_named_identity(
+        &self,
+        identifier: &Identifier,
+        name: &str,
+        vault_name: &str,
+    ) -> Result<()>;
 
     /// Delete an identity given its name
     async fn delete_identity_by_name(&self, name: &str) -> Result<Option<Identifier>>;
@@ -42,6 +47,9 @@ pub trait IdentitiesRepository: Send + Sync + 'static {
 
     /// Return true if there is an identity with this name and it is the default one
     async fn is_default_identity_by_name(&self, name: &str) -> Result<bool>;
+
+    /// Return the vault name used to create an identity
+    async fn get_identifier_vault_name(&self, identifier: &Identifier) -> Result<Option<String>>;
 }
 
 /// A named identity associates a name with a persisted identity.
@@ -53,15 +61,17 @@ pub trait IdentitiesRepository: Send + Sync + 'static {
 pub struct NamedIdentity {
     identifier: Identifier,
     name: String,
+    vault_name: String,
     is_default: bool,
 }
 
 impl NamedIdentity {
     /// Create a new named identity
-    pub fn new(identifier: Identifier, name: String, is_default: bool) -> Self {
+    pub fn new(identifier: Identifier, name: String, vault_name: String, is_default: bool) -> Self {
         Self {
             identifier,
             name,
+            vault_name,
             is_default,
         }
     }
@@ -74,6 +84,11 @@ impl NamedIdentity {
     /// Return the identity name
     pub fn name(&self) -> String {
         self.name.clone()
+    }
+
+    /// Return the vault name
+    pub fn vault_name(&self) -> String {
+        self.vault_name.clone()
     }
 
     /// Return true if this identity is the default one

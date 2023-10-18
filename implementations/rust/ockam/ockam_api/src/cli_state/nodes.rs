@@ -154,7 +154,9 @@ impl CliState {
 
     /// Return the vault which was used to create the identity associated to a node
     pub async fn get_node_vault(&self, node_name: &str) -> Result<Vault> {
-        todo!("get_node_vault")
+        let identifier = self.get_node_identifier(node_name).await?;
+        let named_vault = self.get_identifier_vault(&identifier).await?;
+        Ok(named_vault.vault().await?)
     }
 
     pub fn stdout_logs(&self, node_name: &str) -> PathBuf {

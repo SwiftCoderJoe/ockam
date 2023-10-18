@@ -338,7 +338,7 @@ async fn default_configuration() -> Result<Configuration> {
 
     let mut configuration = authority_node::Configuration {
         identifier: "I4dba4b2e53b2ed95967b3bab350b6c9ad9c624e5".try_into()?,
-        storage_path,
+        database_path: storage_path,
         vault_path,
         project_identifier: "123456".to_string(),
         tcp_listener_address: format!("127.0.0.1:{}", port),

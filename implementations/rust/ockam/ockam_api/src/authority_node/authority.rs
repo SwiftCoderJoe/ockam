@@ -263,9 +263,9 @@ impl Authority {
 
     /// Create an identity vault backed by a FileStorage
     async fn create_secure_channels_vault(configuration: &Configuration) -> Result<Vault> {
-        let vault_path = &configuration.vault_path;
-        Self::create_ockam_directory_if_necessary(vault_path)?;
-        let vault = Vault::create_with_persistent_storage_path(vault_path).await?;
+        let database_path = &configuration.database_path;
+        Self::create_ockam_directory_if_necessary(database_path)?;
+        let vault = Vault::create_with_persistent_storage_path(database_path).await?;
         Ok(vault)
     }
 
@@ -273,9 +273,9 @@ impl Authority {
     async fn create_identity_attributes_repository(
         configuration: &Configuration,
     ) -> Result<Arc<dyn IdentityAttributesRepository>> {
-        let storage_path = &configuration.storage_path;
-        Self::create_ockam_directory_if_necessary(storage_path)?;
-        let storage = Arc::new(SqlxDatabase::create(&storage_path).await?);
+        let database_path = &configuration.database_path;
+        Self::create_ockam_directory_if_necessary(database_path)?;
+        let storage = Arc::new(SqlxDatabase::create(&database_path).await?);
         let repository = Arc::new(IdentityAttributesSqlxDatabase::new(storage));
         Ok(Self::bootstrap_repository(repository, configuration))
     }
