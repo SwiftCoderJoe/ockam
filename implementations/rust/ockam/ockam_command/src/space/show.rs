@@ -3,7 +3,7 @@ use miette::IntoDiagnostic;
 
 use ockam::Context;
 use ockam_api::cli_state::{SpaceConfig, StateDirTrait, StateItemTrait};
-use ockam_api::cloud::space::{Space, Spaces};
+use ockam_api::cloud::space::{Space, Spaces, self};
 use ockam_api::nodes::InMemoryNode;
 
 use crate::output::Output;
@@ -18,7 +18,7 @@ const AFTER_LONG_HELP: &str = include_str!("./static/show/after_long_help.txt");
 /// Show the details of a space
 #[derive(Clone, Debug, Args)]
 #[command(
-    arg_required_else_help = true,
+    arg_required_else_help = false,
     long_about = docs::about(LONG_ABOUT),
     before_help = docs::before_help(PREVIEW_TAG),
     after_long_help = docs::after_help(AFTER_LONG_HELP)
@@ -26,7 +26,7 @@ const AFTER_LONG_HELP: &str = include_str!("./static/show/after_long_help.txt");
 pub struct ShowCommand {
     /// Name of the space.
     #[arg(display_order = 1001)]
-    pub name: String,
+    pub name: Option<String>,
 
     #[command(flatten)]
     pub cloud_opts: CloudOpts,
@@ -43,19 +43,31 @@ async fn rpc(ctx: Context, (opts, cmd): (CommandGlobalOpts, ShowCommand)) -> mie
 }
 
 async fn run_impl(ctx: &Context, opts: CommandGlobalOpts, cmd: ShowCommand) -> miette::Result<()> {
-    let id = opts.state.spaces.get(&cmd.name)?.config().id.clone();
+    let space_names = match &cmd.name {
+        Some(it) => Vec::from([it]),
+        None => Vec::new()
+    };
 
-    // Send request
-    let node = InMemoryNode::start(ctx, &opts.state).await?;
-    let controller = node.create_controller().await?;
-    let space: Space = controller.get_space(ctx, id).await?;
-    opts.terminal
-        .stdout()
-        .plain(space.output()?)
-        .json(serde_json::to_string_pretty(&space).into_diagnostic()?)
-        .write_line()?;
-    opts.state
-        .spaces
-        .overwrite(&cmd.name, SpaceConfig::from(&space))?;
+    let mut concatenated_string = String::new();
+
+    for space_name in &space_names {
+        let id = opts.state.spaces.get(space_name)?.config().id.clone();
+
+        // Send request
+        let node = InMemoryNode::start(ctx, &opts.state).await?;
+        let controller = node.create_controller().await?;
+        let space: Space = controller.get_space(ctx, id).await?;
+
+        concatenated_string.push_str(&space.output()?);
+
+        opts.terminal
+            .stdout()
+            .json(serde_json::to_string_pretty(&space).into_diagnostic()?)
+            .write_line()?;
+        opts.state
+            .spaces
+            .overwrite(&space_name, SpaceConfig::from(&space))?;
+    }
+    
     Ok(())
 }
