@@ -50,19 +50,14 @@ async fn run_impl(ctx: &Context, opts: CommandGlobalOpts, cmd: ShowCommand) -> m
             let all_spaces = opts.state.spaces.list()?.iter().map(|item| item.config().name.to_owned()).collect_vec();
             let selected_spaces = opts.terminal.select_multiple(String::from("Select one or more spaces that you would like to show info for"), all_spaces);
 
-            // If the user didn't select anything, we can just jump right to build_list which will give an error
-            if selected_spaces.is_empty() {
-                Vec::new()
-            } else {
-                let mut confirm_message = String::from("Show info for these spaces: ");
+            let mut confirm_message = String::from("Show info for these spaces: ");
+            confirm_message.push_str(&selected_spaces.join(","));
 
-                confirm_message.push_str(&selected_spaces.join(","));
-    
-                if opts.terminal.confirm_interactively(confirm_message) {
-                    selected_spaces
-                } else {
-                    Vec::new()
-                }
+            // If the user didn't select anything or declines, we can return an empty vec which will cause build_list to show a message
+            if !selected_spaces.is_empty() && opts.terminal.confirm_interactively(confirm_message) {
+                selected_spaces
+            } else {
+                Vec::new()
             }
         }
     };
