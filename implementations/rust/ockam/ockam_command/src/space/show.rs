@@ -58,16 +58,22 @@ async fn run_impl(ctx: &Context, opts: CommandGlobalOpts, cmd: ShowCommand) -> m
         let controller = node.create_controller().await?;
         let space: Space = controller.get_space(ctx, id).await?;
 
+        concatenated_string.push_str("Space output for space ");
+        concatenated_string.push_str(&space_name);
         concatenated_string.push_str(&space.output()?);
+        concatenated_string.push_str("Space json for space ");
+        concatenated_string.push_str(&space_name);
+        concatenated_string.push_str(&serde_json::to_string_pretty(&space).into_diagnostic()?);
 
-        opts.terminal
-            .stdout()
-            .json(serde_json::to_string_pretty(&space).into_diagnostic()?)
-            .write_line()?;
         opts.state
             .spaces
             .overwrite(&space_name, SpaceConfig::from(&space))?;
     }
+
+    opts.terminal
+        .stdout()
+        .plain(concatenated_string)
+        .write_line()?;
     
     Ok(())
 }
