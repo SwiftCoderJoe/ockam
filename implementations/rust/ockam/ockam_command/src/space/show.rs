@@ -1,4 +1,5 @@
 use clap::Args;
+use itertools::Itertools;
 use miette::IntoDiagnostic;
 
 use ockam::Context;
@@ -44,36 +45,53 @@ async fn rpc(ctx: Context, (opts, cmd): (CommandGlobalOpts, ShowCommand)) -> mie
 
 async fn run_impl(ctx: &Context, opts: CommandGlobalOpts, cmd: ShowCommand) -> miette::Result<()> {
     let space_names = match &cmd.name {
-        Some(it) => Vec::from([it]),
-        None => Vec::new()
+        Some(it) => Vec::from([it.to_owned()]),
+        None => {
+            let all_spaces = opts.state.spaces.list()?.iter().map(|item| item.config().name.to_owned()).collect_vec();
+            let selected_spaces = opts.terminal.select_multiple(String::from("Select one or more spaces that you would like to show info for"), all_spaces);
+
+            // If the user didn't select anything, we can just jump right to build_list which will give an error
+            if selected_spaces.is_empty() {
+                Vec::new()
+            } else {
+                let mut confirm_message = String::from("Show info for these spaces: ");
+
+                confirm_message.push_str(&selected_spaces.join(","));
+    
+                if opts.terminal.confirm_interactively(confirm_message) {
+                    selected_spaces
+                } else {
+                    Vec::new()
+                }
+            }
+        }
     };
 
-    let mut concatenated_string = String::new();
+    // Create controller
+    let node = InMemoryNode::start(ctx, &opts.state).await?;
+    let controller = node.create_controller().await?;
+
+    let mut all_spaces_info = Vec::new();
 
     for space_name in &space_names {
         let id = opts.state.spaces.get(space_name)?.config().id.clone();
 
-        // Send request
-        let node = InMemoryNode::start(ctx, &opts.state).await?;
-        let controller = node.create_controller().await?;
         let space: Space = controller.get_space(ctx, id).await?;
 
-        concatenated_string.push_str("Space output for space ");
-        concatenated_string.push_str(&space_name);
-        concatenated_string.push_str(&space.output()?);
-        concatenated_string.push_str("Space json for space ");
-        concatenated_string.push_str(&space_name);
-        concatenated_string.push_str(&serde_json::to_string_pretty(&space).into_diagnostic()?);
+        all_spaces_info.push(space.output()?);
+
+        // What to do with `serde_json::to_string_pretty(&space).intoDiagnostic()?` ?
 
         opts.state
             .spaces
             .overwrite(&space_name, SpaceConfig::from(&space))?;
     }
 
+    let output = opts.terminal.build_list(&all_spaces_info, "Space Info", "No spaces were asked for")?;
     opts.terminal
         .stdout()
-        .plain(concatenated_string)
+        .plain(output)
         .write_line()?;
-    
+
     Ok(())
 }
